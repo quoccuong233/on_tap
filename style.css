@@ -174,3 +174,15 @@ h2 { font-size: 1.05rem; margin: 24px 0 10px; }
   .row > .label { min-width: 100%; }
   .question { font-size: 1rem; }
 }
+
+/* ---------- Chọn môn ---------- */
+.subjects { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 18px; }
+.subject {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
+  padding: 10px 14px; border-radius: 12px;
+  background: var(--card); border: 1.5px solid var(--line);
+}
+.subject small { color: var(--muted); }
+.subject .sicon { font-size: 1.4rem; }
+.subject.on { border-color: var(--primary); background: var(--primary-soft); }
+.subject:hover { border-color: var(--primary); }

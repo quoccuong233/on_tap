@@ -1,20 +1,33 @@
 /* =========================================================
    Ôn tập trắc nghiệm — chạy hoàn toàn trên trình duyệt.
-   Câu hỏi nằm trong thư mục data/, mỗi chương 1 file chuongN.js.
-   Web tự dò các file data/chuong1.js … data/chuong40.js,
-   nên thêm chương mới KHÔNG cần sửa file này.
+   - Danh sách môn nằm trong data/mon.js
+   - Mỗi môn có 1 thư mục: data/<mã-môn>/chuong1.js … chuong40.js
+   Web tự dò các file chương, nên thêm chương mới KHÔNG cần sửa file này.
    ========================================================= */
 
 const MAX_CHAPTER = 40;
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 const STORE = "ontap.v1";
 
+const subjects = [];
+function addSubject(sub) {
+  if (!sub || !sub.id || subjects.some(x => x.id === sub.id)) return;
+  subjects.push(sub);
+}
 const chapters = [];
 function addChapter(ch) {
   if (!ch || !Array.isArray(ch.questions)) return;
+  // Lấy mã môn từ đường dẫn file: data/<mã-môn>/chuongN.js
+  const src = (document.currentScript && document.currentScript.src) || "";
+  const m = src.match(/data\/([^/]+)\/([^/]+)\.js(\?|$)/);
+  const subj = m ? decodeURIComponent(m[1]) : "khac";
+  const file = m ? m[2] : (ch.id || "chuong");
+  ch.subj = subj;
+  ch.id = `${subj}/${file}`;
   if (chapters.some(c => c.id === ch.id)) return;
   chapters.push(ch);
 }
+window.addSubject = addSubject;
 window.addChapter = addChapter;
 
 /* ---------- Lưu trữ trên trình duyệt ---------- */
@@ -26,10 +39,10 @@ function saveStore() {
 }
 const store = loadStore();
 store.settings = Object.assign(
-  { mode: "practice", count: "all", shuffleQ: true, shuffleOpt: true, selected: null, theme: null },
+  { mode: "practice", count: "all", shuffleQ: true, shuffleOpt: true, selected: [], subject: null, seen: {}, theme: null },
   store.settings || {}
 );
-store.wrong = store.wrong || {};   // "chuong3#5": true
+store.wrong = store.wrong || {};   // "pldc/chuong3#5": true
 store.best = store.best || {};     // chapterId: % cao nhất
 
 /* ---------- Tiện ích ---------- */
@@ -45,6 +58,8 @@ function shuffle(arr) {
 }
 const keyOf = (chId, idx) => `${chId}#${idx}`;
 const chapterById = id => chapters.find(c => c.id === id);
+const curSubject = () => subjects.find(x => x.id === store.settings.subject) || subjects[0];
+const curChapters = () => chapters.filter(c => curSubject() && c.subj === curSubject().id);
 const wrongCount = chId => Object.keys(store.wrong).filter(k => k.startsWith(chId + "#")).length;
 
 /* ---------- Giao diện sáng / tối ---------- */
@@ -78,13 +93,29 @@ function loadScript(src) {
   });
 }
 async function discover() {
+  await loadScript("data/mon.js");
   const jobs = [];
-  for (let i = 1; i <= MAX_CHAPTER; i++) jobs.push(loadScript(`data/chuong${i}.js`));
+  subjects.forEach(sub => {
+    for (let i = 1; i <= MAX_CHAPTER; i++) jobs.push(loadScript(`data/${encodeURIComponent(sub.id)}/chuong${i}.js`));
+  });
   await Promise.all(jobs);
   chapters.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.title.localeCompare(b.title, "vi"));
-  if (!Array.isArray(store.settings.selected)) store.settings.selected = chapters.map(c => c.id);
-  store.settings.selected = store.settings.selected.filter(id => chapterById(id));
-  if (!store.settings.selected.length && chapters.length) store.settings.selected = [chapters[0].id];
+  const s = store.settings;
+  if (!Array.isArray(s.selected)) s.selected = [];
+  s.selected = s.selected.filter(id => chapterById(id));
+  if (!subjects.some(x => x.id === s.subject)) s.subject = subjects[0] ? subjects[0].id : null;
+  renderHome();
+}
+
+function switchSubject(id) {
+  const s = store.settings;
+  s.subject = id;
+  // Lần đầu mở môn này: chọn sẵn tất cả các chương
+  if (!s.seen[id]) {
+    s.seen[id] = true;
+    s.selected = [...new Set([...s.selected, ...curChapters().map(c => c.id)])];
+  }
+  saveStore();
   renderHome();
 }
 
@@ -96,24 +127,45 @@ let session = null;
 function renderHome() {
   session = null;
   const s = store.settings;
-  if (!chapters.length) {
+  if (!subjects.length) {
     $app.innerHTML = `<div class="card empty">
-      <p><b>Chưa tìm thấy chương nào.</b></p>
-      <p>Hãy đặt file câu hỏi vào thư mục <code>data/</code> với tên <code>chuong1.js</code>, <code>chuong2.js</code>…</p></div>`;
+      <p><b>Chưa có môn nào.</b></p>
+      <p>Kiểm tra file <code>data/mon.js</code> đã được upload chưa.</p></div>`;
     return;
   }
-  const selectedQs = chapters.filter(c => s.selected.includes(c.id))
-    .reduce((n, c) => n + c.questions.length, 0);
-  const totalWrong = Object.keys(store.wrong).filter(k => s.selected.includes(k.split("#")[0])).length;
-  const subject = chapters[0].subject || "";
+  const sub = curSubject();
+  if (!s.seen[sub.id]) return switchSubject(sub.id);
+  const list = curChapters();
+  const subjectPicker = subjects.length > 1 ? `
+    <div class="subjects">
+      ${subjects.map(x => {
+        const n = chapters.filter(c => c.subj === x.id).length;
+        return `<button class="subject ${x.id === sub.id ? "on" : ""}" data-sub="${esc(x.id)}">
+          <span class="sicon">${esc(x.icon || "📘")}</span>
+          <span><b>${esc(x.name)}</b><br><small>${n} chương</small></span></button>`;
+      }).join("")}
+    </div>` : "";
+
+  if (!list.length) {
+    $app.innerHTML = `${subjectPicker}<h1>${esc(sub.name)}</h1><div class="card empty">
+      <p><b>Môn này chưa có chương nào.</b></p>
+      <p>Đặt file câu hỏi vào thư mục <code>data/${esc(sub.id)}/</code> với tên <code>chuong1.js</code>, <code>chuong2.js</code>…</p></div>`;
+    $app.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => switchSubject(b.dataset.sub));
+    return;
+  }
+  const selList = list.filter(c => s.selected.includes(c.id));
+  const selectedQs = selList.reduce((n, c) => n + c.questions.length, 0);
+  const selIds = selList.map(c => c.id);
+  const totalWrong = Object.keys(store.wrong).filter(k => selIds.includes(k.split("#")[0])).length;
 
   $app.innerHTML = `
-    <h1>Ôn tập ${esc(subject)}</h1>
+    ${subjectPicker}
+    <h1>${esc(sub.name)}</h1>
     <p class="sub">Chọn chương muốn ôn, rồi bấm <b>Bắt đầu</b>.</p>
 
     <h2>Chương</h2>
     <div class="chapters">
-      ${chapters.map(c => {
+      ${list.map(c => {
         const on = s.selected.includes(c.id);
         const w = wrongCount(c.id);
         const best = store.best[c.id];
@@ -130,7 +182,7 @@ function renderHome() {
         </label>`;
       }).join("")}
     </div>
-    ${chapters.length > 1 ? `<div class="row" style="margin-top:8px">
+    ${list.length > 1 ? `<div class="row" style="margin-top:8px">
         <button class="btn" data-act="all" style="padding:6px 12px;font-size:.85rem">Chọn tất cả</button>
         <button class="btn" data-act="none" style="padding:6px 12px;font-size:.85rem">Bỏ chọn</button>
       </div>` : ""}
@@ -169,6 +221,7 @@ function renderHome() {
     ${totalWrong ? `<p class="hint"><a href="#" data-act="clearWrong" style="color:var(--muted)">Xóa danh sách câu sai</a></p>` : ""}
   `;
 
+  $app.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => switchSubject(b.dataset.sub));
   $app.querySelectorAll("[data-ch]").forEach(cb => cb.onchange = () => {
     const id = cb.dataset.ch;
     s.selected = cb.checked ? [...new Set([...s.selected, id])] : s.selected.filter(x => x !== id);
@@ -183,13 +236,13 @@ function renderHome() {
   $app.querySelectorAll("[data-act]").forEach(b => b.onclick = e => {
     e.preventDefault();
     const a = b.dataset.act;
-    if (a === "all") { s.selected = chapters.map(c => c.id); saveStore(); renderHome(); }
-    if (a === "none") { s.selected = []; saveStore(); renderHome(); }
+    if (a === "all") { s.selected = [...new Set([...s.selected, ...list.map(c => c.id)])]; saveStore(); renderHome(); }
+    if (a === "none") { s.selected = s.selected.filter(id => !list.some(c => c.id === id)); saveStore(); renderHome(); }
     if (a === "start") startQuiz(false);
     if (a === "wrong") startQuiz(true);
     if (a === "browse") renderBrowse();
     if (a === "clearWrong" && confirm("Xóa toàn bộ danh sách câu sai?")) {
-      Object.keys(store.wrong).forEach(k => { if (s.selected.includes(k.split("#")[0])) delete store.wrong[k]; });
+      Object.keys(store.wrong).forEach(k => { if (selIds.includes(k.split("#")[0])) delete store.wrong[k]; });
       saveStore(); renderHome();
     }
   });
@@ -201,7 +254,7 @@ function renderHome() {
 function buildItems(onlyWrong) {
   const s = store.settings;
   let items = [];
-  chapters.filter(c => s.selected.includes(c.id)).forEach(c => {
+  curChapters().filter(c => s.selected.includes(c.id)).forEach(c => {
     c.questions.forEach((q, idx) => {
       if (onlyWrong && !store.wrong[keyOf(c.id, idx)]) return;
       let opts = q.options.map((text, orig) => ({ text, orig }));
@@ -363,7 +416,7 @@ function renderResult(filter) {
 
     <div class="actions">
       <button class="btn primary grow" data-r="again">🔄 Làm lại</button>
-      <button class="btn grow" data-r="wrong" ${Object.keys(store.wrong).length ? "" : "disabled"}>🔁 Ôn câu sai</button>
+      <button class="btn grow" data-r="wrong" ${buildItems(true).length ? "" : "disabled"}>🔁 Ôn câu sai</button>
       <button class="btn grow" data-r="home">🏠 Trang chủ</button>
     </div>
 
@@ -404,7 +457,7 @@ function renderResult(filter) {
    ========================================================= */
 function renderBrowse(query = "") {
   session = null;
-  const sel = chapters.filter(c => store.settings.selected.includes(c.id));
+  const sel = curChapters().filter(c => store.settings.selected.includes(c.id));
   const norm = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
   const nq = norm(query.trim());
 
@@ -423,7 +476,7 @@ function renderBrowse(query = "") {
   const focused = document.activeElement && document.activeElement.id === "search";
   $app.innerHTML = `
     <div class="row" style="justify-content:space-between;margin-bottom:12px">
-      <h1 style="margin:0">Xem đáp án</h1>
+      <h1 style="margin:0">Xem đáp án · ${esc(curSubject().name)}</h1>
       <button class="btn" id="back">← Trang chủ</button>
     </div>
     <input class="search" id="search" placeholder="🔍 Tìm câu hỏi (gõ không dấu cũng được)…" value="${esc(query)}">
