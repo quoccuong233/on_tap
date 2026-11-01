@@ -27,8 +27,11 @@ npx serve .
 ```
 data/
 ├── mon.js            ← danh sách các môn
-└── pldc/             ← mỗi môn 1 thư mục
-    └── chuong3.js
+├── pldc/             ← mỗi môn 1 thư mục
+│   └── chuong3.js
+└── attt/             ← An toàn thông tin
+    ├── chuong1.js    ← 116 câu (mã hóa, mật mã)
+    └── chuong2.js    ← 227 câu (mã độc, tấn công, mạng)
 ```
 
 ## Thêm chương mới
