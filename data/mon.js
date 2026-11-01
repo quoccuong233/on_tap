@@ -8,3 +8,4 @@
 addSubject({ id: "pldc", name: "Pháp luật đại cương", icon: "⚖️" });
 addSubject({ id: "attt", name: "An toàn thông tin", icon: "🔐" });
 addSubject({ id: "tthcm", name: "Tư tưởng Hồ Chí Minh", icon: "⭐" });
+addSubject({ id: "cnxhkh", name: "Chủ nghĩa xã hội khoa học", icon: "🚩" });
