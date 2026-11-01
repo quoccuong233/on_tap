@@ -1,9 +1,9 @@
-// Chương 2 — Pháp luật đại cương
-// Nguồn: ACourse — Quiz Pháp luật đại cương (cuối kỳ), Chương 2
+// Chương 2: Những vấn đề cơ bản về pháp luật — Pháp luật đại cương
+// Nguồn: ACourse — Quiz Pháp luật đại cương (cuối kỳ), Chương 2. Đáp án đã được rà soát lại; câu nào sửa so với trang gốc có ghi chú (note).
 // answer = vị trí đáp án đúng (0 = A, 1 = B, 2 = C, 3 = D)
 addChapter({
   order: 2,
-  title: "Chương 2",
+  title: "Chương 2: Những vấn đề cơ bản về pháp luật",
   questions: [
     {"q":"Kiểu pháp luật phong kiến thể hiện ý chí của chủ thể nào?","options":["Giai cấp tư sản.","Giai cấp chủ nô.","Giai cấp địa chủ phong kiến.","Giai cấp nông nô."],"answer":2},
     {"q":"Pháp luật được hình thành bằng cách nhà nước sáng tạo ra các quy phạm pháp luật mới được gọi là hình thức pháp luật gì?","options":["Văn bản quy phạm pháp luật.","Án lệ.","Tập quán pháp.","Tiền lệ pháp."],"answer":0},
@@ -15,7 +15,7 @@ addChapter({
     {"q":"Căn cứ nào để phân chia các kiểu pháp luật trong lịch sử?","options":["Bản chất nhà nước.","Hình thức nhà nước.","Hình thái kinh tế - xã hội.","Kiểu nhà nước."],"answer":2},
     {"q":"Kiểu pháp luật XHCN thể hiện ý chí của chủ thể nào?","options":["Giai cấp chủ nô.","Giai cấp công nhân.","Giai cấp địa chủ.","Giai cấp tư sản."],"answer":1},
     {"q":"Trong lịch sử loài người, đã có các hình thức pháp luật nào?","options":["Tập quán pháp, tiền lệ pháp.","Tập quán pháp, tiền lệ pháp, điều lệ pháp, văn bản quy phạm pháp luật.","Tập quán pháp, tiền lệ pháp, văn bản quy phạm pháp luật.","Tập quán pháp, văn bản quy phạm pháp luật."],"answer":2},
-    {"q":"Pháp luật được hình thành bằng cách nhà nước thừa nhận các bản án, quyết định của Tòa án trước đó được gọi là hình thức pháp luật gì?","options":["Tập quán pháp.","Văn bản quy phạm pháp luật.","Án lệ.","Tiền lệ pháp."],"answer":2},
+    {"q":"Pháp luật được hình thành bằng cách nhà nước thừa nhận các bản án, quyết định của Tòa án trước đó được gọi là hình thức pháp luật gì?","options":["Tập quán pháp.","Văn bản quy phạm pháp luật.","Án lệ.","Tiền lệ pháp."],"answer":2,"note":"Hình thức pháp luật này còn gọi là tiền lệ pháp (án lệ pháp); trang gốc chọn \"Án lệ\"."},
     {"q":"Luật giáo dục do cơ quan nào sau đây ban hành?","options":["Bộ Giáo dục và Đào tạo.","Quốc hội.","Chính phủ.","Ủy ban thường vụ Quốc hội."],"answer":1},
     {"q":"Pháp luật ghi nhận các quan hệ xã hội chủ yếu và xác định quyền, nghĩa vụ pháp lý của các chủ thể trong quan hệ đó, thể hiện chức năng nào của pháp luật?","options":["Chức năng giao tiếp.","Chức năng giáo dục.","Chức năng điều chỉnh các quan hệ xã hội.","Chức năng bảo vệ."],"answer":2},
     {"q":"Kiểu pháp luật và hình thức pháp luật là hai khái niệm:","options":["khác nhau.","giống nhau.","đối lập nhau.","tương tự nhau."],"answer":0},
@@ -34,7 +34,7 @@ addChapter({
     {"q":"Nhà nước và pháp luật là hai hiện tượng:","options":["Cùng phát sinh, tồn tại và tiêu vong.","Có quan hệ đối lập nhau.","Tồn tại tự nhiên, bất biến.","Cùng thuộc cơ sở hạ tầng."],"answer":0},
     {"q":"Pháp luật và kinh tế có mối quan hệ như thế nào?","options":["Pháp luật tác động tích cực vào kinh tế.","Pháp luật quyết định đến kinh tế.","Kinh tế quyết định pháp luật.","Pháp luật tác động tiêu cực vào kinh tế."],"answer":2},
     {"q":"Đề cập về mối quan hệ giữa pháp luật và kinh tế, khẳng định nào sau đây là SAI?","options":["Pháp luật có tính độc lập tương đối đối với kinh tế.","Pháp luật giữ vai trò quyết định đối với kinh tế.","Kinh tế giữ vai trò quyết định đối với pháp luật.","Pháp luật có thể tác động đến kinh tế theo hướng tích cực hoặc tiêu cực."],"answer":1},
-    {"q":"Hình thái kinh tế - xã hội nào không có pháp luật?","options":["Hình thái kinh tế - xã hội chiếm hữu nô lệ.","Hình thái kinh tế - xã hội cộng sản nguyên thủy.","Hình thái kinh tế - xã hội tư bản chủ nghĩ","Hình thái kinh tế - xã hội xã hội chủ nghĩa."],"answer":1},
+    {"q":"Hình thái kinh tế - xã hội nào không có pháp luật?","options":["Hình thái kinh tế - xã hội chiếm hữu nô lệ.","Hình thái kinh tế - xã hội cộng sản nguyên thủy.","Hình thái kinh tế - xã hội tư bản chủ nghĩa.","Hình thái kinh tế - xã hội xã hội chủ nghĩa."],"answer":1},
     {"q":"Xác định đặc điểm chung của pháp luật và đạo đức?","options":["Đều tồn tại ở dạng thành văn.","Đều mang tính bắt buộc chung.","Đều do nhà nước đặt ra hoặc thừa nhận.","Đều mang tính quy phạm."],"answer":3},
     {"q":"Chức năng nào sau đây không phải là chức năng của pháp luật?","options":["Chức năng bảo vệ các quan hệ xã hội.","Chức năng giáo dục.","Chức năng điều chỉnh các quan hệ xã hội.","Chức năng lập hiến và lập pháp."],"answer":3},
     {"q":"Xác định điểm chung của pháp luật và tín điều tôn giáo?","options":["Đều mang tính quy phạm.","Đều tồn tại ở dạng thành văn.","Đều do nhà nước đặt ra hoặc thừa nhận.","Đều mang tính bắt buộc chung."],"answer":0},
@@ -47,7 +47,7 @@ addChapter({
     {"q":"Kiểu pháp luật ... thể hiện rõ sự bất bình đẳng giữa hai cấp đối kháng trong xã hội, công khai thừa nhận nô lệ không phải là công dân, họ là tài sản của...","options":["Phong kiến - giai cấp địa chủ","Tư sản - giai cấp thống trị","Chủ nô - giai cấp phong kiến","Chủ nô - giai cấp chủ nô"],"answer":3},
     {"q":"Pháp luật công khai quy định về chế độ bóc lột nô lệ, thể hiện sự bất bình đẳng giữa chủ nô và nô lệ, đây là đặc điểm của kiểu pháp luật nào?","options":["Pháp luật chủ nô","Pháp luật phong kiến","Pháp luật tư sản","Bao gồm các đáp án"],"answer":0},
     {"q":"Pháp luật là công cụ bảo vệ lợi ích của","options":["Tổ chức tôn giáo","Giai cấp thống trị","Nhà nước và xã hội","Nhân dân"],"answer":1},
-    {"q":"Người lao động đình công theo quy định pháp luật đòi tăng lương, giảm giờ làm, thể hiện vai trò nào sau đây của pháp luật","options":["Pháp luật làm ổn định những quan hệ mới","Pháp luật là phương tiện để Nhà nước quản lý mọi mặt đời sống xã hội","Pháp luật là phương tiện để bảo vệ các quyền, lợi ích hợp pháp của công dân","Pháp luật là cơ sở để tạo lập mối quan hệ đối ngoại"],"answer":1},
+    {"q":"Người lao động đình công theo quy định pháp luật đòi tăng lương, giảm giờ làm, thể hiện vai trò nào sau đây của pháp luật","options":["Pháp luật làm ổn định những quan hệ mới","Pháp luật là phương tiện để Nhà nước quản lý mọi mặt đời sống xã hội","Pháp luật là phương tiện để bảo vệ các quyền, lợi ích hợp pháp của công dân","Pháp luật là cơ sở để tạo lập mối quan hệ đối ngoại"],"answer":2,"note":"Trang gốc chọn B. Người lao động đình công đúng luật để đòi quyền lợi là dùng pháp luật bảo vệ quyền, lợi ích hợp pháp của mình (C)."},
     {"q":"Ưu thế vượt trội của pháp luật so với các quy phạm xã hội khác là","options":["Tính cưỡng chế","Tính rộng rãi","Tính xã hội","Tồn tại trong thời gian dài"],"answer":0},
     {"q":"Pháp luật ghi nhận các quan hệ xã hội chủ yếu và xác định quyền, nghĩa vụ pháp lý của các chủ thể trong quan hệ đó, thể hiện","options":["Chức năng điều chỉnh các quan hệ xã hội của pháp luật","Chức năng của pháp luật","Chức năng giáo dục của pháp luật","Nhiệm vụ của pháp luật"],"answer":0}
   ]

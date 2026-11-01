@@ -1,9 +1,9 @@
-// Chương 4 — Pháp luật đại cương
-// Nguồn: ACourse — Quiz Pháp luật đại cương (cuối kỳ), Chương 4
+// Chương 4: Quan hệ pháp luật — Pháp luật đại cương
+// Nguồn: ACourse — Quiz Pháp luật đại cương (cuối kỳ), Chương 4. Đáp án đã được rà soát lại; câu nào sửa so với trang gốc có ghi chú (note).
 // answer = vị trí đáp án đúng (0 = A, 1 = B, 2 = C, 3 = D)
 addChapter({
   order: 4,
-  title: "Chương 4",
+  title: "Chương 4: Quan hệ pháp luật",
   questions: [
     {"q":"Chỉ ra đâu không phải là yếu tố cấu thành quan hệ pháp luật?","options":["Chủ thể.","Nội dung.","Sự kiện pháp lý.","Khách thể."],"answer":2},
     {"q":"Trong các nghĩa vụ sau đây, nghĩa vụ nào không phải là nghĩa vụ pháp lý?","options":["Nghĩa vụ cấp dưỡng của cha, mẹ đối với con dưới 18 tuổi khi cha, mẹ ly hôn.","Nghĩa vụ giải quyết tố cáo của người giải quyết tố cáo.","Nghĩa vụ đóng thuế thu nhập cá nhân.","Nghĩa vụ của chồng phải đưa tiền lương cho vợ."],"answer":3},
@@ -19,9 +19,9 @@ addChapter({
     {"q":"Người thành niên là người:","options":["từ 16 tuổi trở lên.","từ đủ 18 tuổi trở lên.","từ 18 tuổi trở lên.","từ đủ 16 tuổi trở lên."],"answer":1},
     {"q":"Năng lực pháp luật của chủ thể trong quan hệ pháp luật phụ thuộc vào yếu tố nào dưới đây?","options":["Pháp luật của từng quốc gia.","Hoàn cảnh kinh tế của chủ thể.","Độ tuổi, tình trạng sức khỏe, trình độ của chủ thể.","Truyền thống văn hóa dân tộc của từng quốc gia."],"answer":0},
     {"q":"Nội dung của quan hệ pháp luật được hiểu là gì?","options":["Các bên tham gia vào quan hệ pháp luật.","Những giá trị mà các chủ thể quan hệ pháp luật muốn đạt được.","Là đối tượng mà các chủ thể quan tâm khi tham gia vào quan hệ pháp luật.","Quyền và nghĩa vụ của các chủ thể trong quan hệ pháp luật."],"answer":3},
-    {"q":"Ông A lái xe sau khi uống rượu đâm vào xe khác làm cho 2 người bị chết thuộc loại sự kiện pháp lý nào?","options":["Hành vi không hành động.","Sự biến tuyệt đối.","Hành vi hành động.","Sự biến tương đối."],"answer":0},
+    {"q":"Ông A lái xe sau khi uống rượu đâm vào xe khác làm cho 2 người bị chết thuộc loại sự kiện pháp lý nào?","options":["Hành vi không hành động.","Sự biến tuyệt đối.","Hành vi hành động.","Sự biến tương đối."],"answer":2,"note":"Trang gốc chọn A. Lái xe đâm vào xe khác là hành vi hành động (C), không phải không hành động."},
     {"q":"Đâu là chủ thể của quan hệ pháp luật bầu cử đại biểu quốc hội?","options":["Người nước ngoài.","Công dân Việt Nam.","Hộ gia đình.","Người không quốc tịch."],"answer":1},
-    {"q":"Xác định khách thể trong quan hệ pháp luật sau: A đăng ký kết hôn với B","options":["Tài sản chung của vợ chồng.","Giấy đăng ký kết hôn.","Việc đăng ký kết hôn.","Cán bộ tư pháp xã."],"answer":0},
+    {"q":"Xác định khách thể trong quan hệ pháp luật sau: A đăng ký kết hôn với B","options":["Tài sản chung của vợ chồng.","Giấy đăng ký kết hôn.","Việc đăng ký kết hôn.","Cán bộ tư pháp xã."],"answer":2,"note":"Trang gốc chọn A (tài sản chung của vợ chồng). Quan hệ đăng ký kết hôn hướng tới việc được công nhận là vợ chồng, nên khách thể là việc đăng ký kết hôn (C); tài sản chung không liên quan đến quan hệ này."},
     {"q":"Quan hệ xã hội nào sau đây là quan hệ pháp luật?","options":["Quan hệ đồng nghiệp.","Quan hệ đồng hương.","Quan hệ vợ chồng.","Quan hệ bạn bè."],"answer":2},
     {"q":"Sạt lở đất làm cho 2 người bị chết thuộc loại sự kiện pháp lý nào?","options":["Hành vi hành động.","Hành vi không hành động.","Sự biến tương đối.","Sự biến tuyệt đối."],"answer":3},
     {"q":"Cho quan hệ pháp luật sau: Ông Phạm Ngọc (35 tuổi, công nhân công ty X) mua của ông Trần Tình (75 tuổi, cán bộ nghỉ hưu) chiếc xe máy SH Mode trị giá 50 triệu đồng. Xác định nội dung trong quan hệ pháp luật trên?","options":["Quyền và nghĩa vụ của ông Phạm Ngọc và ông Trần Tình.","Quyền sở hữu chiếc xe máy SH Mode.","Chiếc xe máy SH Mode.","Ông Phạm Ngọc và ông Trần Tình."],"answer":0},
@@ -44,7 +44,7 @@ addChapter({
     {"q":"Năng lực hành vi của chủ thể trong quan hệ pháp luật được hiểu là gì?","options":["Khả năng của chủ thể được pháp luật quy định để được tham gia quan hệ pháp luật đó.","Khả năng chủ thể có thể tham gia vào quan hệ pháp luật với tư cách là một chủ thể và tự mình thực hiện các quyền, nghĩa vụ phát sinh từ mối quan hệ pháp luật đã tham gia.","Khả năng của chủ thể được pháp luật quy định và bằng chính hành vi của mình tham gia vào quan hệ đó.","Khả năng của chủ thể bằng chính hành vi của mình để tham gia vào quan hệ pháp luật đó."],"answer":3},
     {"q":"Xác định chủ thể trong quan hệ pháp luật sau: A cho B và C vay 200 triệu đồng","options":["A.","A, B và C.","C.","B, C."],"answer":1},
     {"q":"Khách thể của quan hệ pháp luật là?","options":["Các lợi ích vật chất hoặc tinh thần.","Các quy định của cơ quan Nhà nước.","Lợi ích vật chất mà các chủ thể của quan hệ đó hướng tới khi tham gia quan hệ.","Yếu tố thúc đẩy chủ thể tham gia quan hệ pháp luật."],"answer":3},
-    {"q":"Sự kiện pháp lý là những sự kiện xảy ra?","options":["Từ hành vi xử sự của con người.","Từ thực tiễn đời sống xã hội.","Trong thực tiễn đời sống mà sự xuất hiện hay mất đi của nó được pháp luật gắnvới việc hình thành, thay đổi hay chấm dứt quan hệ pháp luật.","Cả a, b, c đều đúng."],"answer":2},
+    {"q":"Sự kiện pháp lý là những sự kiện xảy ra?","options":["Từ hành vi xử sự của con người.","Từ thực tiễn đời sống xã hội.","Trong thực tiễn đời sống mà sự xuất hiện hay mất đi của nó được pháp luật gắn với việc hình thành, thay đổi hay chấm dứt quan hệ pháp luật.","Cả a, b, c đều đúng."],"answer":2},
     {"q":"Đặc điểm của quan hệ pháp luật là?","options":["Các quan hệ trong cuộc sống.","Quan hệ mang tính ý chí.","Các quan hệ trong sản xuất và kinh doanh.","Quan hệ do Nhà nước quy định."],"answer":3},
     {"q":"Quan hệ pháp luật là hình thức đặc biệt của","options":["Quan hệ lao động","Quan hệ xã hội","Quy phạm pháp luật","Quan hệ chính trị"],"answer":1},
     {"q":"Nội dung của quan hệ pháp luật được thể hiện","options":["Chủ thể tham gia thực hiện quyền theo quy định của pháp luật","Chủ thể tham gia là các cá nhân hoặc tổ chức có đủ tư cách pháp lý","Chủ thể tham gia có những quyền và nghĩa vụ do pháp luật quy định","Chủ thể tham gia phải thực hiện nghĩa vụ theo quy định của pháp luật"],"answer":2},

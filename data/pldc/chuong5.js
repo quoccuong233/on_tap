@@ -1,9 +1,9 @@
-// Chương 5 — Pháp luật đại cương
-// Nguồn: ACourse — Quiz Pháp luật đại cương (cuối kỳ), Chương 5
+// Chương 5: Vi phạm pháp luật và trách nhiệm pháp lý — Pháp luật đại cương
+// Nguồn: ACourse — Quiz Pháp luật đại cương (cuối kỳ), Chương 5. Đáp án đã được rà soát lại; câu nào sửa so với trang gốc có ghi chú (note).
 // answer = vị trí đáp án đúng (0 = A, 1 = B, 2 = C, 3 = D)
 addChapter({
   order: 5,
-  title: "Chương 5",
+  title: "Chương 5: Vi phạm pháp luật và trách nhiệm pháp lý",
   questions: [
     {"q":"Hành vi vi phạm pháp luật nào là hành vi nguy hiểm nhất cho xã hội?","options":["Vi phạm dân sự.","Vi phạm hình sự.","Vi phạm hành chính.","Vi phạm kỷ luật."],"answer":1},
     {"q":"Hành vi nào sau đây là hành vi trái pháp luật ở dạng không hành động?","options":["Không giúp người khác tự sát.","Không vượt đèn đỏ.","Không tố giác tội phạm.","Môi giới mại dâm."],"answer":2},
@@ -19,12 +19,12 @@ addChapter({
     {"q":"Xác định đâu không phải là hành vi vi phạm pháp luật?","options":["Vượt đèn đỏ.","Đang yêu người này nhưng kết hôn với người khác.","Đang có vợ nhưng sống như vợ chồng với người khác.","Gây thương tích cho người khác."],"answer":1},
     {"q":"Hành vi nào sau đây là vi phạm pháp luật dân sự?","options":["Chứa chấp hoạt động mại dâm.","Không giao hàng đúng thời hạn trên hợp đồng.","Điều khiển xe gắn máy không đội mũ bảo hiểm.","Bán hàng lấn chiếm lòng đường, vỉa hè."],"answer":1},
     {"q":"Đâu là dấu hiệu thuộc về Khách thể của Vi phạm pháp luật?","options":["Quan hệ sở hữu.","Động cơ thực hiện hành vi vi phạm pháp luật.","Hành vi trái pháp luật.","Lỗi của chủ thể."],"answer":0},
-    {"q":"A trộm ti vi của B vàTi vi được xác định là gì trong cấu thành vi phạm pháp luật của A?","options":["Công cụ, phương tiện vi phạm.","Đối tượng.","Khách thể.","Chủ thể."],"answer":1},
+    {"q":"A trộm ti vi của B và C. Ti vi được xác định là gì trong cấu thành vi phạm pháp luật của A?","options":["Công cụ, phương tiện vi phạm.","Đối tượng.","Khách thể.","Chủ thể."],"answer":1},
     {"q":"Chỉ ra yếu tố bắt buộc có trong mặt chủ quan của vi phạm pháp luật?","options":["Lỗi.","Động cơ.","Nhu cầu.","Mục đích."],"answer":0},
     {"q":"Khẳng định nào sau đây là SAI khi nghiên cứu về mặt chủ quan của vi phạm pháp luật?","options":["Tùy thuộc vào trách nhiệm pháp lý áp dụng đối với chủ thể để xác định lỗi của chủ thể vi phạm pháp luật.","Mục đích là cái chủ thể hướng tới khi thực hiện hành vi vi phạm pháp luật.","Mặt chủ quan là yếu tố bắt buộc phải xem xét khi xác định hành vi vi phạm pháp luật.","Động cơ là cái thúc đẩy chủ thể thực hiện hành vi vi phạm pháp luật."],"answer":0},
     {"q":"Đâu không là dấu hiệu của vi phạm pháp luật?","options":["Tính trái phong tục tập quán.","Tính phải chịu trách nhiệm.","Tính xác định của hành vi.","Tính có lỗi."],"answer":0},
     {"q":"Xác định chủ thể của vi phạm pháp luật trong trường hợp: A trộm ti vi của B và C?","options":["A, B và C.","A và B.","A.","B và C."],"answer":2},
-    {"q":"A và B dùng dao đâm chếtCon dao được xác định là gì trong cấu thành vi phạm pháp luật của A & B?","options":["Chủ thể.","Đối tượng.","Khách thể.","Công cụ, phương tiện vi phạm."],"answer":3},
+    {"q":"A và B dùng dao đâm chết C. Con dao được xác định là gì trong cấu thành vi phạm pháp luật của A & B?","options":["Chủ thể.","Đối tượng.","Khách thể.","Công cụ, phương tiện vi phạm."],"answer":3},
     {"q":"Những biểu hiện ra bên ngoài của vi phạm pháp luật gọi là gì?","options":["Khách thể của vi phạm pháp luật.","Mặt chủ quan của vi phạm pháp luật.","Mặt khách quan của vi phạm pháp luật.","Chủ thể của vi phạm pháp luật."],"answer":2},
     {"q":"Hành vi nào sau đây là vi phạm kỷ luật?","options":["Lừa đảo chiếm đoạt tài sản trị giá 2.500.000 đồng.","Vượt đèn đỏ gây tai nạn nghiêm trọng.","Đi vào đường cấm, đường ngược chiều.","Sử dụng tài liệu khi làm bài thi."],"answer":3},
     {"q":"Trong các chủ thể sau, chủ thể nào có thẩm quyền áp dụng trách nhiệm pháp lý hình sự?","options":["Nhà nước.","Viện kiểm sát.","Tòa án.","Công an."],"answer":2},
@@ -44,7 +44,7 @@ addChapter({
     {"q":"Khẳng định nào sau đây là SAI khi nghiên cứu về trách nhiệm pháp lý?","options":["Truy cứu trách nhiệm pháp lý là một quá trình hoạt động phức tạp của các cơ quan nhà nước, chủ thể có thẩm quyền.","Cơ sở của trách nhiệm pháp lý là vi phạm pháp luật.","Chỉ các cơ quan Nhà nước mới có thẩm quyền áp dụng trách nhiệm pháp lý đối với chủ thể vi phạm pháp luật.","Trong mọi trường hợp, trách nhiệm pháp lý luôn gắn liền với những biện pháp cưỡng chế nhà nước đối với chủ thể đã vi phạm pháp luật."],"answer":2},
     {"q":"Khẳng định nào sau đây là ĐÚNG khi nói về trách nhiệm pháp lý?","options":["Mọi hành vi vi phạm pháp luật đều bị áp dụng trách nhiệm pháp lý kỷ luật.","Mọi hành vi vi phạm pháp luật đều bị áp dụng trách nhiệm pháp lý hình sự.","Mọi hành vi vi phạm pháp luật đều bị áp dụng trách nhiệm pháp lý hành chính.","Mọi hành vi vi phạm pháp luật đều có thể bị áp dụng trách nhiệm pháp lý."],"answer":3},
     {"q":"Khẳng định nào sau đây là ĐÚNG?","options":["Sự thiệt hại thực tế xảy ra cho xã hội là dấu hiệu bắt buộc trong mặt khách quan của vi phạm pháp luật.","Mọi hậu quả do vi phạm pháp luật gây ra đều phải thể hiện dưới dạng vật chất.","Chủ thể của vi phạm pháp luật có thể chịu đồng thời nhiều trách nhiệm pháp lý.","Không thấy trước hành vi của mình là nguy hiểm cho xã hội thì không bị xem là có lỗi."],"answer":2},
-    {"q":"Trong các chủ thể sau, chủ thể nào không có thẩm quyền áp dụng trách nhiệm pháp lý hành chính?","options":["Tòa án.","Viện kiểm sát.","Công an.","Chủ tịch Hội đồng nhân dân."],"answer":1},
+    {"q":"Trong các chủ thể sau, chủ thể nào không có thẩm quyền áp dụng trách nhiệm pháp lý hành chính?","options":["Tòa án.","Viện kiểm sát.","Công an.","Chủ tịch Hội đồng nhân dân."],"answer":1,"note":"Chủ tịch Hội đồng nhân dân cũng không có thẩm quyền xử phạt hành chính (người có thẩm quyền là Chủ tịch UBND); trang gốc chọn B."},
     {"q":"Trong các chủ thể sau, chủ thể nào không có thẩm quyền áp dụng trách nhiệm pháp lý kỷ luật?","options":["Chánh tòa hình sự Tòa án nhân dân huyện.","Thủ trưởng cơ quan, đơn vị, trường học, bệnh viện, xí nghiệp.","Chủ tịch nước.","Bộ trưởng."],"answer":0},
     {"q":"Trong cấu thành vi phạm pháp luật của A và B khi A trộm ti vi của B và C, A được xác định là yếu tố nào?","options":["Chủ mưu.","Khách thể.","Đối tượng.","Chủ thể."],"answer":3},
     {"q":"Hành vi nào sau đây không phải là vi phạm pháp luật?","options":["Đang yêu người này nhưng kết hôn với người khác.","Đang có vợ nhưng sống như vợ chồng với người khác.","Vượt đèn đỏ.","Gây thương tích cho người khác."],"answer":0},
