@@ -27,8 +27,13 @@ npx serve .
 ```
 data/
 ├── mon.js            ← danh sách các môn
-├── pldc/             ← mỗi môn 1 thư mục
-│   └── chuong3.js
+├── pldc/             ← Pháp luật đại cương (mỗi môn 1 thư mục)
+│   ├── chuong1.js    ← Nhà nước (73 câu)
+│   ├── chuong2.js    ← Pháp luật (45 câu)
+│   ├── chuong3.js    ← Quy phạm pháp luật, văn bản QPPL (60 câu)
+│   ├── chuong4.js    ← Quan hệ pháp luật (46 câu)
+│   ├── chuong5.js    ← Vi phạm pháp luật, trách nhiệm pháp lý (45 câu)
+│   └── chuong6.js    ← Hệ thống pháp luật, các ngành luật (244 câu)
 ├── attt/             ← An toàn thông tin
 │   ├── chuong1.js    ← 116 câu (mã hóa, mật mã)
 │   └── chuong2.js    ← 227 câu (mã độc, tấn công, mạng)
