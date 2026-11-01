@@ -3,18 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4f46e5">
   <title>Ôn tập trắc nghiệm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
-    <button class="brand" id="homeBtn" type="button">📚 Ôn tập trắc nghiệm</button>
-    <button class="icon-btn" id="themeBtn" type="button" title="Đổi giao diện sáng/tối">🌓</button>
+    <div class="topbar-in">
+      <button class="brand" id="homeBtn" type="button" title="Về trang chủ">
+        <span class="logo">✦</span><span>Ôn tập trắc nghiệm</span>
+      </button>
+      <button class="icon-btn" id="themeBtn" type="button" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">
+        <span class="sun">☀️</span><span class="moon">🌙</span>
+      </button>
+    </div>
   </header>
 
   <main id="app">
-    <p class="loading">Đang tải câu hỏi…</p>
+    <div class="loading"><span class="spinner"></span>Đang tải câu hỏi…</div>
   </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <p class="modal-msg" id="modalMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="modalNo" type="button">Ở lại</button>
+        <button class="btn primary" id="modalYes" type="button">Đồng ý</button>
+      </div>
+    </div>
+  </div>
 
   <footer class="foot">Thêm chương: bỏ file <code>chuongX.js</code> vào thư mục của môn trong <code>data/</code>.</footer>
 

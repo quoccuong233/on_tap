@@ -9,6 +9,7 @@ Web ôn tập trắc nghiệm chạy hoàn toàn trên trình duyệt, không c�
 - Trộn thứ tự câu hỏi và đáp án
 - Tự lưu **câu làm sai** để ôn lại (lưu trên trình duyệt của bạn)
 - **Xem đáp án** toàn bộ đề, có ô tìm kiếm (gõ không dấu cũng được)
+- Có nút **✕ Thoát** khi đang làm bài (hoặc bấm `Esc`)
 - Có giao diện tối, dùng tốt trên điện thoại
 
 ## Chạy trên máy
@@ -37,11 +38,13 @@ data/
 ├── attt/             ← An toàn thông tin
 │   ├── chuong1.js    ← 116 câu (mã hóa, mật mã)
 │   └── chuong2.js    ← 227 câu (mã độc, tấn công, mạng)
-└── tthcm/            ← Tư tưởng Hồ Chí Minh
-    ├── chuong1.js    ← Chương 1 + 2 (57 câu)
-    ├── chuong3.js    ← Chương 3 + 4 (81 câu)
-    ├── chuong5.js    ← Chương 5 (45 câu)
-    └── chuong6.js    ← Chương 6 (37 câu)
+├── tthcm/            ← Tư tưởng Hồ Chí Minh
+│   ├── chuong1.js    ← Chương 1 + 2 (57 câu)
+│   ├── chuong3.js    ← Chương 3 + 4 (81 câu)
+│   ├── chuong5.js    ← Chương 5 (45 câu)
+│   └── chuong6.js    ← Chương 6 (37 câu)
+└── cnxhkh/           ← Chủ nghĩa xã hội khoa học
+    └── chuong1.js … chuong7.js   ← 7 chương (203 câu)
 ```
 
 ## Thêm chương mới
