@@ -229,6 +229,6 @@ addChapter({
     {"q": "Có nhiều người chia sẻ tài liệu hữu ích trên Facebook và yêu cầu để lại số điện thoại, email, số CMND... Bạn có nên làm theo để nhận tài liệu?", "options": ["Có, đó là những tài liệu hữu ích và vô hại", "Không, bạn nên tránh gửi thông tin cá nhân cho người lạ", "Bạn sẽ để lại email của bạn bè để nhờ nhận hộ", "Tất cả đều đúng"], "answer": 1},
     {"q": "Dịch vụ mạng DNS dùng để:", "options": ["Cấp địa chỉ cho các máy trạm", "Phân giải tên và địa chỉ", "Truyền file và dữliệu", "Gửi thư điệntử"], "answer": 1},
     {"q": "Thiết bị mạng nào làm giảm bớt sự va chạm (collisions)?", "options": ["Hub", "NIC", "Switch", "Transceiver"], "answer": 2},
-    {"q": "Địa chỉ MAC trong mạng Ethernet là gì?", "options": ["Địa chỉ lớp 3 được Router xử lý cho việc định tuyến", "Địa chỉ lớp 4 được gắn với cổng dịch vụ", "Có thể thay đổi bằng TCP/IP Properties củaWindows", "Địa chỉ ở tầng liên kết dữ liệu của giao diện mạng; có thể do nhà sản xuất cấp hoặc được gán cục bộ. Đáp án:"], "answer": 3, "note": "File gốc ghi nhầm \"Đáp án: 227\". Đáp án D được chọn vì địa chỉ MAC là địa chỉ ở tầng liên kết dữ liệu."}
+    {"q": "Địa chỉ MAC trong mạng Ethernet là gì?", "options": ["Địa chỉ lớp 3 được Router xử lý cho việc định tuyến", "Địa chỉ lớp 4 được gắn với cổng dịch vụ", "Có thể thay đổi bằng TCP/IP Properties của Windows", "Địa chỉ ở tầng liên kết dữ liệu của giao diện mạng; có thể do nhà sản xuất cấp hoặc được gán cục bộ."], "answer": 3}
   ]
 });
