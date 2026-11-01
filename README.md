@@ -29,9 +29,14 @@ data/
 ├── mon.js            ← danh sách các môn
 ├── pldc/             ← mỗi môn 1 thư mục
 │   └── chuong3.js
-└── attt/             ← An toàn thông tin
-    ├── chuong1.js    ← 116 câu (mã hóa, mật mã)
-    └── chuong2.js    ← 227 câu (mã độc, tấn công, mạng)
+├── attt/             ← An toàn thông tin
+│   ├── chuong1.js    ← 116 câu (mã hóa, mật mã)
+│   └── chuong2.js    ← 227 câu (mã độc, tấn công, mạng)
+└── tthcm/            ← Tư tưởng Hồ Chí Minh
+    ├── chuong1.js    ← Chương 1 + 2 (57 câu)
+    ├── chuong3.js    ← Chương 3 + 4 (81 câu)
+    ├── chuong5.js    ← Chương 5 (45 câu)
+    └── chuong6.js    ← Chương 6 (37 câu)
 ```
 
 ## Thêm chương mới
