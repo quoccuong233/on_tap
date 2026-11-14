@@ -246,11 +246,71 @@ def _pdf_char_marked(ch) -> bool:
     return False
 
 
+OCR_USED = set()  # file nào phải đọc chữ từ ảnh
+
+
+def ensure_tesseract():
+    """Trên GitHub Actions: cài Tesseract + gói tiếng Việt khi lần đầu cần OCR."""
+    import shutil
+    import subprocess
+    if shutil.which("tesseract"):
+        return True
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print("Cài Tesseract OCR…", flush=True)
+        subprocess.run("sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-vie",
+                       shell=True, check=False, stdout=subprocess.DEVNULL)
+    return bool(shutil.which("tesseract"))
+
+
+def ocr_pages(path: Path, page_numbers):
+    """Đọc chữ từ ảnh các trang PDF (tiếng Việt). Trả về {số trang: [dòng]}."""
+    import subprocess
+    import tempfile
+    from concurrent.futures import ThreadPoolExecutor
+    import pypdfium2 as pdfium
+    if not page_numbers or not ensure_tesseract():
+        return {}
+    doc = pdfium.PdfDocument(str(path))
+    tmp = Path(tempfile.mkdtemp())
+    imgs = {}
+    for i in page_numbers:
+        f = tmp / f"p{i}.png"
+        doc[i].render(scale=300 / 72).to_pil().convert("L").save(f)
+        imgs[i] = f
+    doc.close()
+
+    def one(i):
+        r = subprocess.run(["tesseract", str(imgs[i]), "-", "-l", "vie", "--psm", "4"],
+                           capture_output=True, text=True)
+        return i, r.stdout.splitlines()
+
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
+        return dict(ex.map(one, page_numbers))
+
+
+def ocr_fix(t: str) -> str:
+    """Sửa lỗi OCR hay gặp ở đầu dòng đáp án: '€.' → 'C.', 'A,.' → 'A.', 'D.FTP' → 'D. FTP'."""
+    t = t.strip()
+    t = re.sub(r"^[€©¢Ç](?=\s*[.,:;)])", "C", t)
+    t = re.sub(r"^\(?([A-H])\s*[,;:]+\.?\s*", r"\1. ", t)
+    t = re.sub(r"^\(?([A-H])\s*\.(?=\S)", r"\1. ", t)
+    t = re.sub(r"^(Câu\s*\d+)\s*[,;:]\s*", r"\1. ", t)
+    return t
+
+
 def read_pdf(path: Path):
     import pdfplumber
     lines = []
     with pdfplumber.open(str(path)) as pdf:
-        for page in pdf.pages:
+        empty = [i for i, pg in enumerate(pdf.pages) if not any(c["text"].strip() for c in pg.chars)]
+        ocr = ocr_pages(path, empty) if empty else {}
+        if ocr:
+            OCR_USED.add(str(path))
+        for pi, page in enumerate(pdf.pages):
+            if pi in ocr:
+                for t in ocr[pi]:
+                    lines += make_line([(ocr_fix(t), False)])
+                continue
             for tl in page.extract_text_lines(return_chars=True, strip=True):
                 chars = [c for c in tl["chars"] if c["text"].strip()]
                 runs, ci = [], 0
@@ -297,6 +357,7 @@ KEY_PAIR_RE = re.compile(r"(?<!\d)(\d{1,3})\s*[.:)\-–—]?\s*\(?([A-Ha-h])\)?(
 NOTE_RE = re.compile(r"^(?:giải\s*thích|giai\s*thich|gợi\s*ý|goi\s*y|lời\s*giải|loi\s*giai|ghi\s*chú|ghi\s*chu|note|explanation)\s*[:：]\s*", re.I)
 TRAIL_MARK_RE = re.compile(r"\s*(?:\(\s*\*\s*\)|\(\s*(?:đúng|dung|đ|x)\s*\)|\[\s*x\s*\]|" + MARK + r")\s*$", re.I)
 MON_RE = re.compile(r"^môn(?:\s*học)?\s*[:：]\s*(.+)$|^mon(?:\s*hoc)?\s*[:：]\s*(.+)$", re.I)
+SECTION_RE = re.compile(r"^(?:phần|phan|part|mục|muc|chương|chuong|chapter)\s+[\dIVXivx]+\b.*$", re.I)
 CHUONG_RE = re.compile(r"^(?:chương|chuong|chapter|bài|bai)\s*(\d{1,2})\s*[:.\-–—]?\s*(.*)$", re.I)
 
 
@@ -563,6 +624,12 @@ class Parser:
             self.new_q(None, line)
             return
 
+        # --- tiêu đề phần giữa đề ("Phần 2: …") → bỏ qua
+        if self.cur is not None and len(self.cur.opts) >= 2 and SECTION_RE.match(t):
+            self.flush_pending()
+            self.mode = "opt"
+            return
+
         # --- trước câu hỏi đầu tiên: đọc "Môn: …", "Chương 2: …"
         if self.cur is None:
             mm = MON_RE.match(t)
@@ -722,6 +789,7 @@ def find_or_make_subject(raw_name: str, subs, new_subs):
     while sid in used or (DATA / sid).exists() and not any(s["id"] == sid for s in subs):
         sid = f"{base}{k}"
         k += 1
+    name = name[:1].upper() + name[1:]
     s = {"id": sid, "name": name, "icon": icon or guess_icon(name)}
     new_subs.append(s)
     return s, True
@@ -735,7 +803,7 @@ def chapter_from_name(stem: str):
         m = re.match(r"^(\d{1,2})\b(.*)$", s)
     if m:
         n = int(m.group(1))
-        if re.match(r"^\s*(?:[+&,\-–]|và|va)\s*\d", m.group(2)):  # "Chương 1 + 2"
+        if re.match(r"^\s*(?:[+&,]|và|va)\s*\d{1,2}\b", m.group(2)):  # "Chương 1 + 2"
             return n, "Chương " + clean(m.group(1) + m.group(2))
         rest = re.sub(r"^[\s.:\-–—+&,]+", "", m.group(2)).strip()
         return n, f"Chương {n}: {rest}" if rest else f"Chương {n}"
@@ -822,7 +890,7 @@ def main():
             fail.append((rel, f"không mở được file: {e}"))
             continue
         if nlines == 0:
-            fail.append((rel, "không đọc được chữ nào (PDF dạng ảnh scan?)"))
+            fail.append((rel, "không đọc được chữ nào (ảnh mờ hoặc file trống?)"))
             continue
         if not good:
             why = bad[0][1] if bad else "không thấy câu hỏi nào (cần dạng 'Câu 1: …' và 'A. …')"
@@ -858,10 +926,15 @@ def main():
 
         write_chapter(sub["id"], num, title, good, f.name)
         ok.append({"file": rel, "mon": sub, "moi": is_new, "chuong": num, "title": title,
-                   "so_cau": len(good), "bo": bad, "cap_nhat": updated})
+                   "so_cau": len(good), "bo": bad, "cap_nhat": updated, "ocr": str(f) in OCR_USED})
         f.unlink()
 
     append_subjects(new_subs)
+    for rel, _ in fail:
+        try:
+            (ROOT / rel).unlink()
+        except OSError:
+            pass
     for d in sorted(NHAP.glob("*/"), reverse=True) if NHAP.exists() else []:
         try:
             d.rmdir()  # xóa thư mục môn đã trống
@@ -897,6 +970,8 @@ def make_report(ok, fail):
         r.append(f"## ✅ {o['file']}\n")
         r.append(f"- {tag}**{o['mon']['icon']} {o['mon']['name']}** (`data/{o['mon']['id']}/`) — {act} "
                  f"**{o['title']}** → `chuong{o['chuong']}.js`, **{o['so_cau']} câu**\n")
+        if o.get("ocr"):
+            r.append("- 📷 File là ảnh chụp/scan → đã đọc chữ từ ảnh (OCR), có thể sai vài dấu — nên lướt lại\n")
         if o["bo"]:
             r.append(f"- ⚠️ Bỏ qua {len(o['bo'])} câu (sửa file rồi tải lại nếu cần):\n")
             for label, why, prev in o["bo"][:30]:
@@ -905,7 +980,7 @@ def make_report(ok, fail):
                 r.append(f"  - … và {len(o['bo']) - 30} câu nữa\n")
         r.append("\n")
     for rel, why in fail:
-        r.append(f"## ❌ {rel}\n- {why}\n- File vẫn được giữ lại trong `nhap/`. Sửa rồi tải lại (hoặc xóa đi).\n\n")
+        r.append(f"## ❌ {rel}\n- {why}\n- File đã được gỡ khỏi `nhap/`. Sửa rồi tải lại là được.\n\n")
     return "".join(r)
 
 
