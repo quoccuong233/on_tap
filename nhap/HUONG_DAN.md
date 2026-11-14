@@ -53,6 +53,6 @@ Cũng đọc được: `Câu 1.` / `1.` / `Question 1`, đáp án `A.` / `A)` / 
 ## Không đọc được
 
 - **.doc** (Word đời cũ) → mở bằng Word, *Lưu thành* `.docx`.
-- **PDF scan** (chụp ảnh, không bôi đen chọn chữ được) → không đọc được chữ.
+- **PDF scan / ảnh chụp / "Print to PDF"** → vẫn đọc được (nhận chữ từ ảnh – OCR), nhưng lâu hơn và có thể sai vài dấu, nên lướt lại.
 - Câu nào không tìm ra đáp án đúng sẽ bị bỏ và liệt kê trong `KET_QUA.md`. Sửa file rồi tải lại là xong.
-- File không lấy được câu nào sẽ **được giữ lại** trong `nhap/`, và tab Actions báo ❌. Sửa rồi tải lại, hoặc xóa file đó đi.
+- File không lấy được câu nào sẽ bị gỡ khỏi `nhap/` và tab Actions báo ❌ (lý do ghi trong `KET_QUA.md`). Sửa rồi tải lại là được.

@@ -61,6 +61,14 @@
     ol.howto { padding-left: 20px; margin: 8px 0 0; }
     ol.howto li { margin: 6px 0; }
     .back { text-decoration: none; }
+    .manage summary { cursor: pointer; list-style: none; }
+    .manage summary::-webkit-details-marker { display: none; }
+    .manage summary::before { content: "▸ "; color: var(--muted); }
+    .manage[open] summary::before { content: "▾ "; }
+    .chlist { display: grid; gap: 6px; margin: 12px 0; }
+    .chrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card-2); font-size: .92rem; }
+    .btn.danger { color: var(--bad); border-color: var(--bad-soft); }
+    .btn.danger:hover:not(:disabled) { border-color: var(--bad); background: var(--bad-soft); }
   </style>
 </head>
 <body>

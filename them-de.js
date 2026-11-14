@@ -134,6 +134,7 @@ function renumber() {
 }
 
 let msg = "";
+let manageOpen = false;
 function showMsg(t) { msg = t; const el = document.getElementById("msg"); if (el) { el.textContent = t; el.hidden = !t; } }
 
 /* ---------- Màn hình: kết nối GitHub ---------- */
@@ -208,6 +209,16 @@ function render() {
         <span class="sicon">＋</span><span class="stext"><b>Môn mới</b><small>Tạo môn chưa có</small></span>
       </button>
     </div>
+    ${!form.isNew && sel ? `
+      <details class="card manage" id="manage" style="margin-bottom:20px" ${manageOpen ? "open" : ""}>
+        <summary><b>🗂 Các chương đã có (${(chapterNums[sel.id] || new Set()).size})</b> <span class="muted">— xóa chương / xóa môn</span></summary>
+        <div class="chlist">
+          ${[...(chapterNums[sel.id] || [])].sort((a, b) => a - b).map(n => `
+            <div class="chrow"><span>${esc(chapterTitles[`${sel.id}/${n}`] || `Chương ${n}`)}</span>
+              <button class="x" type="button" data-delch="${n}" title="Xóa chương ${n}">🗑</button></div>`).join("") || `<p class="hint">Môn này chưa có chương nào.</p>`}
+        </div>
+        <button class="btn small danger" type="button" id="delSub">🗑 Xóa cả môn “${esc(sel.name)}”</button>
+      </details>` : ""}
     ${form.isNew ? `
       <div class="card stack" style="margin-bottom:20px">
         <div>
@@ -266,24 +277,152 @@ function render() {
   $app.querySelectorAll("[data-title]").forEach(inp => inp.oninput = () => { form.files[+inp.dataset.title].title = inp.value; });
   $app.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { form.files.splice(+b.dataset.rm, 1); render(); });
   document.getElementById("go").onclick = upload;
+  const man = document.getElementById("manage");
+  if (man) {
+    man.ontoggle = async () => {
+      if (manageOpen === man.open) return;
+      manageOpen = man.open;
+      if (man.open && [...(chapterNums[sel.id] || [])].some(n => !chapterTitles[`${sel.id}/${n}`])) { await loadChapterTitles(sel); render(); }
+    };
+    man.querySelectorAll("[data-delch]").forEach(b => b.onclick = () => doDelete("chuong", sel, +b.dataset.delch));
+    document.getElementById("delSub").onclick = () => doDelete("mon", sel);
+  }
   document.getElementById("logout").onclick = () => {
     try { localStorage.removeItem(TOKEN_KEY); } catch { }
     token = null; renderConnect();
   };
 }
 
+/* ---------- Commit nhiều thay đổi cùng lúc (thêm / sửa / xóa file) ---------- */
+// entries: [{path, sha}] — sha = blob sha để thêm/sửa, sha = null để xóa
+async function commitTree(entries, message) {
+  for (let attempt = 0; ; attempt++) {
+    const ref = await gh(repoPath(`/git/ref/heads/${BRANCH}`));
+    const parent = await gh(repoPath(`/git/commits/${ref.object.sha}`));
+    const tree = await gh(repoPath("/git/trees"), {
+      method: "POST",
+      body: JSON.stringify({ base_tree: parent.tree.sha, tree: entries.map(e => ({ path: e.path, mode: "100644", type: "blob", sha: e.sha })) }),
+    });
+    const commit = await gh(repoPath("/git/commits"), {
+      method: "POST", body: JSON.stringify({ message, tree: tree.sha, parents: [ref.object.sha] }),
+    });
+    try {
+      await gh(repoPath(`/git/refs/heads/${BRANCH}`), { method: "PATCH", body: JSON.stringify({ sha: commit.sha }) });
+      return commit.sha;
+    } catch (e) {
+      if (attempt < 2 && e.status === 422) { await sleep(1500); continue; } // repo vừa có commit khác, thử lại
+      throw e;
+    }
+  }
+}
+
+/* Theo dõi lượt chạy GitHub Actions của 1 commit. onStep(tênBước, trạngThái, kếtLuận) */
+async function watchRun(commitSha, onStep) {
+  const t0 = Date.now();
+  let run = null;
+  while (Date.now() - t0 < 10 * 60 * 1000) {
+    await sleep(4000);
+    try {
+      if (!run) {
+        const r = await gh(repoPath(`/actions/runs?head_sha=${commitSha}&per_page=5`));
+        run = (r.workflow_runs || []).find(x => x.path && x.path.includes("cap-nhat-web")) || null;
+        if (!run) continue;
+      }
+      const jobs = await gh(repoPath(`/actions/runs/${run.id}/jobs`));
+      ((jobs.jobs[0] && jobs.jobs[0].steps) || []).forEach(s => onStep(s.name, s.status, s.conclusion));
+      const rr = await gh(repoPath(`/actions/runs/${run.id}`));
+      if (rr.status === "completed") return rr.conclusion;
+    } catch (e) {
+      if (e.status === 403 || e.status === 404) return null; // mã không có quyền xem Actions
+    }
+  }
+  return null;
+}
+
+async function blobFromText(text) {
+  const b = await gh(repoPath("/git/blobs"), { method: "POST", body: JSON.stringify({ content: text, encoding: "utf-8" }) });
+  return b.sha;
+}
+
+/* ---------- Xóa chương / xóa môn ---------- */
+const chapterTitles = {}; // "id/n" → "Tiêu đề · N câu"
+async function loadChapterTitles(sub) {
+  const nums = [...(chapterNums[sub.id] || [])].sort((a, b) => a - b);
+  await Promise.all(nums.map(async n => {
+    const k = `${sub.id}/${n}`;
+    if (chapterTitles[k]) return;
+    try {
+      const res = await fetch(`https://api.github.com${repoPath(`/contents/data/${encodeURIComponent(sub.id)}/chuong${n}.js?ref=${BRANCH}`)}`, {
+        cache: "no-store",
+        headers: { Accept: "application/vnd.github.raw+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28" },
+      });
+      const text = await res.text();
+      const t = text.match(/title:\s*("(?:[^"\\]|\\.)*")/);
+      const cnt = (text.match(/["']?\bq["']?\s*:/g) || []).length;
+      chapterTitles[k] = `${t ? JSON.parse(t[1]) : `Chương ${n}`} · ${cnt} câu`;
+    } catch { chapterTitles[k] = `Chương ${n}`; }
+  }));
+}
+
+async function doDelete(kind, sub, num) {
+  const label = kind === "mon" ? `cả môn "${sub.name}" (${(chapterNums[sub.id] || new Set()).size} chương)` : `chương ${num} của môn "${sub.name}"`;
+  if (!confirm(`Xóa ${label}?\n\nĐề sẽ biến mất khỏi web. (Vẫn khôi phục được từ lịch sử GitHub nếu cần.)`)) return;
+  const steps = ["Xóa trên GitHub", "Đưa web lên lại"];
+  const st = ["run", ""];
+  const show = (extra = "") => renderSteps(sub.icon, sub.name, kind === "mon" ? "Xóa môn" : `Xóa chương ${num}`, steps, st, extra);
+  show();
+  let sha;
+  try {
+    const entries = [];
+    if (kind === "mon") {
+      try {
+        const list = await gh(repoPath(`/contents/data/${encodeURIComponent(sub.id)}?ref=${BRANCH}`));
+        list.filter(x => x.type === "file").forEach(x => entries.push({ path: x.path, sha: null }));
+      } catch (e) { if (e.status !== 404) throw e; }
+      const f = await gh(repoPath(`/contents/data/mon.js?ref=${BRANCH}`));
+      const lines = b64ToUtf8(f.content).split("\n");
+      const kept = lines.filter(l => { const m = l.match(/addSubject\(\{\s*id:\s*"([^"]+)"/); return !(m && m[1] === sub.id); });
+      entries.push({ path: "data/mon.js", sha: await blobFromText(kept.join("\n")) });
+    } else {
+      entries.push({ path: `data/${sub.id}/chuong${num}.js`, sha: null });
+    }
+    sha = await commitTree(entries, kind === "mon" ? `Xóa môn: ${sub.name}` : `Xóa đề: ${sub.name} – chương ${num}`);
+  } catch (e) {
+    st[0] = "fail";
+    return show(`<div class="err" style="margin-top:14px">${esc(e.message)}</div>
+      <div class="actions"><button class="btn" onclick="location.reload()">Quay lại</button></div>`);
+  }
+  st[0] = "done"; st[1] = "run"; show();
+  const conclusion = await watchRun(sha, (name, status, concl) => {
+    if (/deploy-pages/.test(name) && status === "completed") { st[1] = concl === "success" ? "done" : "fail"; show(); }
+  });
+  if (conclusion === "success") st[1] = "done";
+  try { localStorage.setItem(BUST_KEY, String(Date.now())); } catch { }
+  if (kind === "mon" && form.subject && form.subject.id === sub.id) form.subject = null;
+  show(`<div class="card" style="margin-top:14px">${st[1] === "done" ? `<div class="okbox">🗑 Đã xóa ${esc(label)}.</div>` :
+    `<div class="err">Đã xóa trên GitHub, nhưng chưa thấy web cập nhật xong. Xem <a href="https://github.com/${OWNER}/${REPO}/actions" target="_blank" rel="noopener">tab Actions</a>.</div>`}</div>
+    <div class="actions">
+      <a class="btn primary grow" href="./?v=${Date.now()}">📚 Về trang ôn tập</a>
+      <button class="btn grow" type="button" id="again">← Quay lại</button>
+    </div>`);
+  document.getElementById("again").onclick = () => { manageOpen = false; start(); };
+}
+
 /* ---------- Tải lên + theo dõi ---------- */
 const STEPS = ["Tải file lên GitHub", "Chuyển đề thành câu hỏi", "Đưa web lên lại"];
-function renderProgress(state, extra = "") {
-  // state: mảng trạng thái cho từng bước: "" | "run" | "done" | "fail"
+// state: mảng trạng thái cho từng bước: "" | "run" | "done" | "fail"
+function renderSteps(icon, title, sub, steps, state, extra = "") {
   $app.innerHTML = `
-    <section class="hero"><div class="hero-icon">${form.isNew ? esc(form.newIcon) : esc(form.subject.icon)}</div>
-      <div class="hero-text"><h1>${esc(form.isNew ? form.newName.trim() : form.subject.name)}</h1>
-      <p class="sub">${form.files.length} file · chương ${form.files.map(f => f.num).sort((a, b) => a - b).join(", ")}</p></div></section>
+    <section class="hero"><div class="hero-icon">${esc(icon)}</div>
+      <div class="hero-text"><h1>${esc(title)}</h1><p class="sub">${esc(sub)}</p></div></section>
     <div class="card"><ul class="steps">
-      ${STEPS.map((s, i) => `<li class="${state[i] || ""}"><span class="dot">${state[i] === "done" ? "✓" : state[i] === "fail" ? "✕" : i + 1}</span>${s}</li>`).join("")}
+      ${steps.map((s, i) => `<li class="${state[i] || ""}"><span class="dot">${state[i] === "done" ? "✓" : state[i] === "fail" ? "✕" : i + 1}</span>${s}</li>`).join("")}
     </ul></div>
     ${extra}`;
+}
+function renderProgress(state, extra = "") {
+  renderSteps(form.isNew ? form.newIcon : form.subject.icon, form.isNew ? form.newName.trim() : form.subject.name,
+    `${form.files.length} file · chương ${form.files.map(f => f.num).sort((a, b) => a - b).join(", ")}`, STEPS, state, extra);
 }
 
 function cleanName(s) { return s.replace(/[\\/:*?"<>|#%]/g, " ").replace(/\s+/g, " ").trim(); }
@@ -295,32 +434,16 @@ async function upload() {
   renderProgress(st);
   let commitSha;
   try {
-    const blobs = await Promise.all(form.files.map(async f => {
+    const entries = await Promise.all(form.files.map(async f => {
       const ext = (f.file.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
       const title = cleanName(f.title || "");
       const name = `Chương ${f.num}${title ? ` - ${title}` : ""}${ext}`;
       const blob = await gh(repoPath("/git/blobs"), {
         method: "POST", body: JSON.stringify({ content: await fileToB64(f.file), encoding: "base64" }),
       });
-      return { path: `nhap/${cleanName(folder)}/${name}`, mode: "100644", type: "blob", sha: blob.sha };
+      return { path: `nhap/${cleanName(folder)}/${name}`, sha: blob.sha };
     }));
-    const msgText = `Thêm đề: ${subjName} – chương ${form.files.map(f => f.num).join(", ")}`;
-    for (let attempt = 0; ; attempt++) {
-      const ref = await gh(repoPath(`/git/ref/heads/${BRANCH}`));
-      const parent = await gh(repoPath(`/git/commits/${ref.object.sha}`));
-      const tree = await gh(repoPath("/git/trees"), { method: "POST", body: JSON.stringify({ base_tree: parent.tree.sha, tree: blobs }) });
-      const commit = await gh(repoPath("/git/commits"), {
-        method: "POST", body: JSON.stringify({ message: msgText, tree: tree.sha, parents: [ref.object.sha] }),
-      });
-      try {
-        await gh(repoPath(`/git/refs/heads/${BRANCH}`), { method: "PATCH", body: JSON.stringify({ sha: commit.sha }) });
-        commitSha = commit.sha;
-        break;
-      } catch (e) {
-        if (attempt < 2 && e.status === 422) { await sleep(1500); continue; } // repo vừa có commit khác, thử lại
-        throw e;
-      }
-    }
+    commitSha = await commitTree(entries, `Thêm đề: ${subjName} – chương ${form.files.map(f => f.num).join(", ")}`);
   } catch (e) {
     st[0] = "fail";
     if (e.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch { } }
@@ -331,29 +454,12 @@ async function upload() {
   st[0] = "done"; st[1] = "run";
   renderProgress(st, `<p class="hint">Thường mất khoảng 1 phút, cứ để trang này mở.</p>`);
   const runsUrl = `https://github.com/${OWNER}/${REPO}/actions`;
-  const t0 = Date.now();
-  let run = null, conclusion = null;
-  while (Date.now() - t0 < 8 * 60 * 1000) {
-    await sleep(4000);
-    try {
-      if (!run) {
-        const r = await gh(repoPath(`/actions/runs?head_sha=${commitSha}&per_page=5`));
-        run = (r.workflow_runs || []).find(x => x.path && x.path.includes("cap-nhat-web")) || null;
-        if (!run) continue;
-      }
-      const jobs = await gh(repoPath(`/actions/runs/${run.id}/jobs`));
-      const steps = (jobs.jobs[0] && jobs.jobs[0].steps) || [];
-      const conv = steps.find(s => s.name === "Chuyển đề thành câu hỏi");
-      const dep = steps.find(s => /deploy-pages/.test(s.name));
-      if (conv && conv.status === "completed") st[1] = conv.conclusion === "success" ? "done" : "fail";
-      if (st[1] === "done") st[2] = dep && dep.status === "completed" ? (dep.conclusion === "success" ? "done" : "fail") : "run";
-      renderProgress(st, `<p class="hint">Thường mất khoảng 1 phút, cứ để trang này mở.</p>`);
-      const rr = await gh(repoPath(`/actions/runs/${run.id}`));
-      if (rr.status === "completed") { conclusion = rr.conclusion; break; }
-    } catch (e) {
-      if (e.status === 403 || e.status === 404) break; // mã không có quyền xem Actions → bỏ qua phần theo dõi
-    }
-  }
+  const hint = `<p class="hint">Thường mất khoảng 1 phút (file ảnh chụp/scan lâu hơn vì phải đọc chữ từ ảnh), cứ để trang này mở.</p>`;
+  const conclusion = await watchRun(commitSha, (name, status, concl) => {
+    if (name === "Chuyển đề thành câu hỏi" && status === "completed") { st[1] = concl === "success" ? "done" : "fail"; if (st[1] === "done") st[2] = "run"; }
+    if (/deploy-pages/.test(name) && status === "completed" && st[1] === "done") st[2] = concl === "success" ? "done" : "fail";
+    renderProgress(st, hint);
+  });
 
   let report = "";
   try {
