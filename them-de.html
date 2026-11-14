@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="robots" content="noindex">
+  <title>Thêm đề · Ôn tập trắc nghiệm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .stack > * + * { margin-top: 14px; }
+    .label { display: block; font-weight: 700; margin: 0 0 8px; }
+    .input {
+      width: 100%; font: inherit; color: var(--text); background: var(--card-2);
+      border: 1.5px solid var(--line); border-radius: var(--radius-sm); padding: 11px 13px; outline: none;
+    }
+    .input:focus { border-color: var(--primary); }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .row .grow { flex: 1; min-width: 0; }
+    .subjects .subject.new .sicon { background: var(--primary-soft); color: var(--primary); font-weight: 800; }
+    .emojis { display: flex; flex-wrap: wrap; gap: 6px; }
+    .emojis button {
+      width: 40px; height: 40px; border-radius: 11px; border: 1.5px solid var(--line);
+      background: var(--card); font-size: 1.2rem;
+    }
+    .emojis button.on { border-color: var(--primary); background: var(--primary-soft); }
+    .drop {
+      display: block; text-align: center; padding: 26px 16px; border: 2px dashed var(--line);
+      border-radius: var(--radius); background: var(--card-2); cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .drop:hover, .drop.over { border-color: var(--primary); background: var(--primary-soft); }
+    .drop b { color: var(--primary); }
+    .drop input { display: none; }
+    .files { display: grid; gap: 10px; }
+    .file {
+      display: grid; grid-template-columns: 74px 1fr auto; gap: 8px; align-items: center;
+      padding: 10px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card);
+    }
+    .file .fname { grid-column: 1 / -1; font-size: .82rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file .input { padding: 8px 10px; }
+    .file .num { text-align: center; }
+    .file .warn { grid-column: 1 / -1; font-size: .8rem; color: var(--warn); background: var(--warn-soft); padding: 4px 10px; border-radius: 8px; }
+    .x { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 1rem; }
+    .x:hover { color: var(--bad); border-color: var(--bad); }
+    .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    .steps li { display: flex; gap: 10px; align-items: center; color: var(--muted); }
+    .steps li .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--line); font-size: .8rem; flex-shrink: 0; }
+    .steps li.run { color: var(--text); font-weight: 600; }
+    .steps li.run .dot { border-color: var(--line); border-top-color: var(--primary); animation: spin .8s linear infinite; }
+    .steps li.done { color: var(--text); }
+    .steps li.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+    .steps li.fail .dot { background: var(--bad); border-color: var(--bad); color: #fff; }
+    .report h3 { font-size: .95rem; margin: 14px 0 6px; }
+    .report ul { margin: 0; padding-left: 20px; }
+    .report li { margin: 3px 0; }
+    .err { color: var(--bad); background: var(--bad-soft); padding: 10px 12px; border-radius: 12px; font-size: .92rem; }
+    .okbox { color: var(--ok); background: var(--ok-soft); padding: 10px 12px; border-radius: 12px; font-weight: 600; }
+    ol.howto { padding-left: 20px; margin: 8px 0 0; }
+    ol.howto li { margin: 6px 0; }
+    .back { text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand back" href="./" title="Về trang ôn tập" style="color: inherit">
+        <span class="logo">←</span><span>Thêm đề</span>
+      </a>
+      <button class="icon-btn" id="themeBtn" type="button" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">
+        <span class="sun">☀️</span><span class="moon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="app">
+    <div class="loading"><span class="spinner"></span>Đang tải…</div>
+  </main>
+
+  <footer class="foot">Đề được chuyển thành câu hỏi tự động. Mã GitHub chỉ lưu trên trình duyệt này.</footer>
+
+  <script src="them-de.js"></script>
+</body>
+</html>

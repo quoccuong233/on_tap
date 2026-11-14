@@ -86,6 +86,9 @@ code { background: var(--primary-soft); color: var(--primary); padding: 1px 6px;
   background: var(--card); display: grid; place-items: center; font-size: 1rem; transition: transform .15s;
 }
 .icon-btn:hover { transform: rotate(-12deg); }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.add-btn { text-decoration: none; color: var(--primary); }
+.foot a { color: var(--primary); font-weight: 600; }
 .icon-btn .moon { display: none; }
 [data-theme="dark"] .icon-btn .sun { display: none; }
 [data-theme="dark"] .icon-btn .moon { display: inline; }
@@ -126,6 +129,8 @@ h2 { font-size: 1rem; margin: 26px 0 12px; letter-spacing: -.01em; }
   border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(79, 70, 229, .28);
 }
 .btn.primary:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(79, 70, 229, .4); }
+a.btn { text-decoration: none; color: inherit; }
+a.btn.primary { color: #fff; }
 .btn.ghost { background: transparent; }
 .btn.small { padding: 7px 12px; font-size: .88rem; border-radius: 10px; }
 .btn.big { padding: 14px 22px; font-size: 1.02rem; }

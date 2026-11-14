@@ -125,7 +125,9 @@ async function exitQuiz() {
 function loadScript(src) {
   return new Promise(resolve => {
     const s = document.createElement("script");
-    s.src = src;
+    let bust = null;
+    try { bust = localStorage.getItem("ontap.bust"); } catch { /* bỏ qua */ }
+    s.src = bust ? `${src}?v=${bust}` : src; // vừa thêm đề → lấy bản mới, không dùng bản cũ trong cache
     s.onload = () => resolve(true);
     s.onerror = () => { s.remove(); resolve(false); };
     document.head.appendChild(s);

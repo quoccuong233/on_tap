@@ -69,7 +69,7 @@ jobs:
       - name: Gom file web
         run: |
           mkdir _site
-          cp index.html app.js style.css _site/
+          cp *.html *.js *.css _site/
           cp -r data _site/
           touch _site/.nojekyll
 
