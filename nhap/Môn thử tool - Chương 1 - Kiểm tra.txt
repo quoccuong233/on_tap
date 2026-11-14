@@ -1,0 +1,4 @@
+Câu 1: Đây là câu thử tool tự động?
+A. Đúng
+B. Sai
+Đáp án: A
