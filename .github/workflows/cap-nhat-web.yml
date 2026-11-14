@@ -45,7 +45,7 @@ jobs:
 
       - name: Cài thư viện đọc PDF / Word
         if: steps.check.outputs.co == '1'
-        run: pip install --quiet python-docx pdfplumber
+        run: pip install --quiet python-docx pdfplumber numpy
 
       - name: Chuyển đề thành câu hỏi
         id: convert

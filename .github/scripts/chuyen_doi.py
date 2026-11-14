@@ -36,7 +36,8 @@ MON_JS = DATA / "mon.js"
 MAX_CHAPTER = 40
 LETTERS = "ABCDEFGH"
 BO_QUA = {"huong_dan", "ket_qua", "readme", ".gitkeep"}
-DUOI_HO_TRO = {".pdf", ".docx", ".txt"}
+IMG_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+DUOI_HO_TRO = {".pdf", ".docx", ".txt"} | IMG_EXTS
 
 
 # ------------------------------------------------------------------ dòng chữ
@@ -46,19 +47,21 @@ class Line:
     text: str
     marks: list = field(default_factory=list)
     hint: str | None = None  # "q" / "opt" nếu Word tự đánh số câu / chữ cái
+    color: float = 0.0       # độ "nổi màu" của dòng khi đọc từ ảnh (OCR)
+    ocr: bool = False        # dòng đọc từ ảnh → chữ cái đáp án có thể bị nhầm (B↔8, C↔c…)
 
     def __post_init__(self):
         if len(self.marks) != len(self.text):
             self.marks = [False] * len(self.text)
 
     def sub(self, a: int, b: int | None = None) -> "Line":
-        return Line(self.text[a:b], self.marks[a:b])
+        return Line(self.text[a:b], self.marks[a:b], color=self.color, ocr=self.ocr)
 
     def strip(self) -> "Line":
         t = self.text
         a = len(t) - len(t.lstrip())
         b = len(t.rstrip())
-        return Line(t[a:b], self.marks[a:b], self.hint)
+        return Line(t[a:b], self.marks[a:b], self.hint, self.color, self.ocr)
 
     def frac_marked(self) -> float:
         idx = [i for i, c in enumerate(self.text) if not c.isspace()]
@@ -279,41 +282,134 @@ def ensure_tesseract():
     return vie.exists()
 
 
-def ocr_pages(path: Path, page_numbers):
-    """Đọc chữ từ ảnh các trang PDF (tiếng Việt). Trả về {số trang: [dòng]}."""
+def _remove_lines(gray):
+    """Xóa đường kẻ dài (khung viền ô đáp án, gạch ngang) — Tesseract hay bỏ sót chữ nằm trong ô có viền."""
+    try:
+        import numpy as np
+    except ImportError:
+        return gray
+    from PIL import Image, ImageFilter
+    # cân bằng nền: chia cho độ sáng nền cục bộ → nền tô màu/xám thành trắng, chữ vẫn đen
+    bg = np.asarray(gray.filter(ImageFilter.MaxFilter(21)), dtype=np.float32)
+    a = np.clip(np.asarray(gray, dtype=np.float32) * 255.0 / np.maximum(bg, 1.0), 0, 255).astype(np.uint8)
+    dark = a < 170
+    H, W = dark.shape
+
+    def long_runs(mask, L, axis):
+        n = mask.shape[axis]
+        if n <= L:
+            return np.zeros_like(mask)
+        pad = [(0, 0), (0, 0)]
+        pad[axis] = (1, 0)
+        cs = np.pad(np.cumsum(mask, axis=axis, dtype=np.int32), pad)
+        win = (np.take(cs, range(L, n + 1), axis=axis) - np.take(cs, range(0, n - L + 1), axis=axis)) >= L
+        sc = np.pad(np.cumsum(win, axis=axis, dtype=np.int32), pad)
+        idx = np.arange(n)
+        hi, lo = np.minimum(idx + 1, n - L + 1), np.clip(idx - L + 1, 0, n - L + 1)
+        return (np.take(sc, hi, axis=axis) - np.take(sc, lo, axis=axis)) > 0
+
+    k = W / 1600
+    thick = max(8, int(12 * k))
+    hl = long_runs(dark, max(40, int(90 * k)), 1)
+    hl &= ~long_runs(hl, thick, 0)   # chỉ đường mảnh; mảng tô màu dày giữ nguyên
+    vl = long_runs(dark, max(30, int(55 * k)), 0)
+    vl &= ~long_runs(vl, thick, 1)
+    a[hl | vl] = 255
+    return Image.fromarray(a)
+
+
+def _line_color(img_hsv, box) -> float:
+    """Độ 'nổi màu' của 1 dòng chữ = độ bão hòa màu trung bình quanh dòng (0–255).
+    Chữ đen/xám trên nền trắng/xám ≈ 0; chữ đỏ/xanh hoặc dòng tô nền (kể cả màu nhạt) cao hơn rõ."""
+    from PIL import ImageChops, ImageStat
+    x0, y0, x1, y1 = box
+    pad = 8
+    crop = img_hsv.crop((max(0, x0 - pad), max(0, y0 - pad), x1 + pad, y1 + pad))
+    _, sat, val = crop.split()
+    bright = val.point(lambda v: 0 if v < 50 else 255)  # bỏ điểm gần đen: màu ở đó không đáng tin
+    return ImageStat.Stat(ImageChops.multiply(sat, bright)).mean[0]
+
+
+def ocr_images(images: dict, label: str):
+    """Đọc chữ (tiếng Việt) từ các ảnh {khóa: ảnh PIL}. Trả về {khóa: [Line]}.
+    Mỗi dòng có điểm 'nổi màu' (tô nền / chữ màu) → dùng để nhận đáp án đúng."""
     import subprocess
     import tempfile
     from concurrent.futures import ThreadPoolExecutor
-    import pypdfium2 as pdfium
-    if not page_numbers or not ensure_tesseract():
+    if not images or not ensure_tesseract():
         return {}
-    doc = pdfium.PdfDocument(str(path))
     tmp = Path(tempfile.mkdtemp())
-    imgs = {}
-    for i in page_numbers:
-        f = tmp / f"p{i}.png"
-        doc[i].render(scale=300 / 72).to_pil().convert("L").save(f)
-        imgs[i] = f
-    doc.close()
-
+    files = {}
+    from PIL import ImageChops
+    for k, im in images.items():
+        f = tmp / f"p{k}.png"
+        r, g, b = im.convert("RGB").split()
+        # ảnh cho OCR = kênh tối nhất: chữ màu (đỏ, xanh) thành đen, nền màu nhạt gần như trắng; bỏ khung viền
+        _remove_lines(ImageChops.darker(ImageChops.darker(r, g), b)).save(f)
+        files[k] = f
     env = {**os.environ, "OMP_THREAD_LIMIT": "1"}  # mỗi tiến trình 1 luồng, chạy song song theo trang
 
-    def one(i):
+    def one(k):
         try:
-            r = subprocess.run(["tesseract", str(imgs[i]), "-", "--tessdata-dir", str(TESSDATA), "-l", "vie", "--psm", "4"],
+            r = subprocess.run(["tesseract", str(files[k]), "-", "--tessdata-dir", str(TESSDATA), "-l", "vie", "--psm", "4",
+                                "-c", "tessedit_create_tsv=1"],
                                capture_output=True, text=True, env=env, timeout=180)
-            return i, r.stdout.splitlines()
         except subprocess.TimeoutExpired:
-            return i, []
+            return k, []
+        rows, order = {}, []
+        for ln in r.stdout.splitlines()[1:]:
+            c = ln.split("\t")
+            if len(c) < 12 or c[0] != "5" or not c[11].strip():
+                continue
+            key = (c[2], c[3], c[4])  # khối, đoạn, dòng
+            x, y, w, h = map(int, c[6:10])
+            if key not in rows:
+                rows[key] = {"words": [], "box": [x, y, x + w, y + h]}
+                order.append(key)
+            b = rows[key]["box"]
+            rows[key]["words"].append(c[11])
+            rows[key]["box"] = [min(b[0], x), min(b[1], y), max(b[2], x + w), max(b[3], y + h)]
+        hsv = images[k].convert("RGB").convert("HSV")
+        out = []
+        for key in order:
+            t = ocr_fix(" ".join(rows[key]["words"]))
+            if t:
+                out.append(Line(t, color=_line_color(hsv, rows[key]["box"]), ocr=True))
+        return k, out
 
-    print(f"Đọc chữ từ ảnh {len(page_numbers)} trang của {path.name}…", flush=True)
+    print(f"Đọc chữ từ ảnh {len(images)} trang của {label}…", flush=True)
     with ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
-        return dict(ex.map(one, page_numbers))
+        return dict(ex.map(one, list(images)))
+
+
+def ocr_pages(path: Path, page_numbers):
+    """Đọc chữ từ ảnh các trang PDF không có lớp chữ (scan, Print to PDF)."""
+    import pypdfium2 as pdfium
+    if not page_numbers:
+        return {}
+    doc = pdfium.PdfDocument(str(path))
+    images = {i: doc[i].render(scale=300 / 72).to_pil() for i in page_numbers}
+    doc.close()
+    return ocr_images(images, path.name)
+
+
+def read_image(path: Path):
+    from PIL import Image, ImageOps
+    im = ImageOps.exif_transpose(Image.open(path))
+    if max(im.size) < 1600:  # ảnh chụp màn hình nhỏ → phóng to cho OCR đọc tốt hơn
+        f = 1600 / max(im.size)
+        im = im.resize((int(im.width * f), int(im.height * f)), Image.LANCZOS)
+    res = ocr_images({0: im}, path.name)
+    if res:
+        OCR_USED.add(str(path))
+    return res.get(0, []), {}
 
 
 def ocr_fix(t: str) -> str:
     """Sửa lỗi OCR hay gặp ở đầu dòng đáp án: '€.' → 'C.', 'A,.' → 'A.', 'D.FTP' → 'D. FTP'."""
     t = t.strip()
+    # ký tự rác do nút tròn / ô chọn đứng trước đáp án: "©A.FTP", "O@C.443", "@cC.443", "○ B. …"
+    t = re.sub(r"^(?:[^\w\sÀ-ỹ(]|[Oo0QcCe](?=\s*[^\w\s]|\s*[A-H]\s*[.,:;)]))(?:\s*(?:[^\w\sÀ-ỹ(]|[Oo0QcCe](?=\s*[A-H]\s*[.,:;)])))*\s*(?=[A-H€]\s*[.,:;)])", "", t)
     t = re.sub(r"^[€©¢Ç](?=\s*[.,:;)])", "C", t)
     t = re.sub(r"^\(?([A-H])\s*[,;:]+\.?\s*", r"\1. ", t)
     t = re.sub(r"^\(?([A-H])\s*\.(?=\S)", r"\1. ", t)
@@ -331,8 +427,7 @@ def read_pdf(path: Path):
             OCR_USED.add(str(path))
         for pi, page in enumerate(pdf.pages):
             if pi in ocr:
-                for t in ocr[pi]:
-                    lines += make_line([(ocr_fix(t), False)])
+                lines += ocr[pi]
                 continue
             for tl in page.extract_text_lines(return_chars=True, strip=True):
                 chars = [c for c in tl["chars"] if c["text"].strip()]
@@ -363,6 +458,8 @@ def read_any(path: Path):
         return read_pdf(path)
     if ext == ".docx":
         return read_docx(path)
+    if ext in IMG_EXTS:
+        return read_image(path)
     return read_txt(path)
 
 
@@ -380,6 +477,8 @@ KEY_PAIR_RE = re.compile(r"(?<!\d)(\d{1,3})\s*[.:)\-–—]?\s*\(?([A-Ha-h])\)?(
 NOTE_RE = re.compile(r"^(?:giải\s*thích|giai\s*thich|gợi\s*ý|goi\s*y|lời\s*giải|loi\s*giai|ghi\s*chú|ghi\s*chu|note|explanation)\s*[:：]\s*", re.I)
 TRAIL_MARK_RE = re.compile(r"\s*(?:\(\s*\*\s*\)|\(\s*(?:đúng|dung|đ|x)\s*\)|\[\s*x\s*\]|" + MARK + r")\s*$", re.I)
 MON_RE = re.compile(r"^môn(?:\s*học)?\s*[:：]\s*(.+)$|^mon(?:\s*hoc)?\s*[:：]\s*(.+)$", re.I)
+OCR_OPT_RE = re.compile(r"^(?:[^A-Za-z0-9\s]|[OoQ0Il|]){0,4}\s*(?P<L>[^\s.,:;)])\s*[.,:;)]\s*(?=\S)")
+OCR_CONFUSE = {"A": "Aa4Á", "B": "Bb8ßsSR3E", "C": "Cc€GgeéçÇ(©", "D": "Dd0OoPđĐ", "E": "EeÉ", "F": "FfP", "G": "Gg6", "H": "Hh"}
 SECTION_RE = re.compile(r"^(?:phần|phan|part|mục|muc|chương|chuong|chapter)\s+[\dIVXivx]+\b.*$", re.I)
 CHUONG_RE = re.compile(r"^(?:chương|chuong|chapter|bài|bai)\s*(\d{1,2})\s*[:.\-–—]?\s*(.*)$", re.I)
 
@@ -457,7 +556,7 @@ class Parser:
         elif self.cur.opts:
             o = self.cur.opts[-1]
             for l in self.pending:
-                o.line = Line(o.line.text + " " + l.text, o.line.marks + [False] + l.marks)
+                o.line = Line(o.line.text + " " + l.text, o.line.marks + [False] + l.marks, color=max(o.line.color, l.color))
         else:
             self.cur.stem += [l.text for l in self.pending]
         self.pending = []
@@ -517,6 +616,16 @@ class Parser:
                 self.cur.nospace = not spaced and not punct_paren
             explicit = bool(m.group("pre") or m.group("mid") or m.group("post"))
             return L, m.end(), explicit
+        return None
+
+    def match_ocr_option(self, line: Line):
+        """Dòng đọc từ ảnh: '8. HTTP' / 's. HTTP' khi đang chờ đáp án B → coi là B."""
+        exp = self.expected()
+        if not (line.ocr and exp and self.cur is not None and self.mode != "stem" or (line.ocr and exp == "A" and self.cur is not None)):
+            return None
+        m = OCR_OPT_RE.match(line.text)
+        if m and m.group("L") in OCR_CONFUSE.get(exp, exp):
+            return exp, m.end(), False
         return None
 
     def split_inline(self, line: Line, start_letter: str):
@@ -671,7 +780,7 @@ class Parser:
                     self.flush_pending()
                     self.add_option(line, False)
                     return
-        mo = self.match_option_start(line)
+        mo = self.match_option_start(line) or self.match_ocr_option(line)
         if mo:
             L, end, explicit = mo
             if L == "A" and len(self.cur.opts) >= 2:
@@ -704,6 +813,9 @@ class Parser:
 def resolve(qs, key):
     """Chọn đáp án đúng cho từng câu. Trả về (câu hợp lệ, danh sách câu bị bỏ + lý do)."""
     good, bad = [], []
+    from collections import Counter
+    counts = Counter(len(q.opts) for q in qs if len(q.opts) >= 2)
+    usual = counts.most_common(1)[0][0] if counts else 0  # số lựa chọn thường gặp trong file
     for i, q in enumerate(qs, 1):
         num = q.num if q.num is not None else i
         stem = clean(" ".join(q.stem))
@@ -732,6 +844,12 @@ def resolve(qs, key):
                 fm = [k for k, o in enumerate(q.opts) if o.line.frac_marked() >= 0.5]
                 if len(fm) == 1:
                     ans = fm[0]
+                else:
+                    # ảnh: đáp án nổi màu hơn hẳn các đáp án còn lại
+                    # (chỉ khi đọc đủ số lựa chọn như các câu khác: thiếu dòng → màu có thể bị dính sang đáp án khác)
+                    cs = sorted(((o.line.color, k) for k, o in enumerate(q.opts)), reverse=True)
+                    if len(q.opts) >= usual and cs[0][0] >= 6 and cs[0][0] >= 2.5 * cs[1][0] + 2:
+                        ans = cs[0][1]
         if ans is None:
             bad.append((label, "không tìm thấy đáp án đúng", preview))
             continue
@@ -745,8 +863,13 @@ def resolve(qs, key):
     return good, bad
 
 
-def parse_file(path: Path):
-    lines, key = read_any(path)
+def parse_file(path):
+    """path: 1 file, hoặc danh sách ảnh của cùng 1 chương (đọc nối tiếp nhau)."""
+    lines, key = [], {}
+    for one in (path if isinstance(path, list) else [path]):
+        l, k = read_any(one)
+        lines += l
+        key.update(k)
     p = Parser(lines, key)
     qs = p.run()
     good, bad = resolve(qs, p.key)
@@ -873,15 +996,27 @@ def append_subjects(new_subs):
 
 
 # ------------------------------------------------------------------ chạy
+PART_RE = re.compile(r"^(.*?)\s*\[(\d+)\]$")  # "Chương 3 - Mạng [2].png" = ảnh thứ 2 của chương 3
+
+
 def collect_files():
-    files = []
+    """Trả về các nhóm file: mỗi nhóm là 1 chương. Ảnh cùng tên, khác số [k] được gộp theo thứ tự k."""
+    groups, order = {}, []
     if not NHAP.exists():
-        return files
+        return []
     for p in sorted(NHAP.rglob("*")):
         if not p.is_file() or p.name.startswith(".") or p.stem.lower() in BO_QUA:
             continue
-        files.append(p)
-    return files
+        m = PART_RE.match(p.stem)
+        if m and p.suffix.lower() in IMG_EXTS:
+            key, k = (p.parent, m.group(1)), int(m.group(2))
+        else:
+            key, k = (p, None), 0
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append((k, p))
+    return [[p for _, p in sorted(groups[key], key=lambda x: x[0])] for key in order]
 
 
 def main():
@@ -900,15 +1035,19 @@ def main():
 
     subs = read_subjects()
     new_subs, ok, fail = [], [], []
-    taken = {}
-    for f in collect_files():
+    taken, files_of = {}, {}
+    for paths in collect_files():
+        f = paths[0]
         rel = f.relative_to(ROOT).as_posix()
+        if len(paths) > 1:
+            rel = f"{(f.parent / PART_RE.match(f.stem).group(1)).relative_to(ROOT).as_posix()} ({len(paths)} ảnh)"
+        files_of[rel] = paths
         if f.suffix.lower() not in DUOI_HO_TRO:
             hint = " (mở bằng Word rồi Lưu thành .docx)" if f.suffix.lower() == ".doc" else ""
             fail.append((rel, f"chưa hỗ trợ định dạng {f.suffix or '(không đuôi)'}{hint}"))
             continue
         try:
-            good, bad, p, nlines = parse_file(f)
+            good, bad, p, nlines = parse_file(paths if len(paths) > 1 else f)
         except Exception as e:  # file hỏng, có mật khẩu…
             fail.append((rel, f"không mở được file: {e}"))
             continue
@@ -921,6 +1060,8 @@ def main():
             continue
 
         mon_name, chap_part = subject_and_chapter_for(f)
+        if len(paths) > 1:
+            chap_part = PART_RE.match(chap_part).group(1) if PART_RE.match(chap_part) else chap_part
         mon_name = mon_name or p.head_mon
         if not mon_name:
             fail.append((rel, "không biết thuộc môn nào — hãy để file trong thư mục nhap/<Tên môn>/ "
@@ -947,17 +1088,19 @@ def main():
             bad.append(("(cả file)", f"trùng số chương {num} với file khác trong cùng lần tải — file này ghi đè", ""))
         taken.setdefault(sub["id"], set()).add(num)
 
-        write_chapter(sub["id"], num, title, good, f.name)
+        write_chapter(sub["id"], num, title, good, f.name if len(paths) == 1 else rel.rsplit("/", 1)[-1])
         ok.append({"file": rel, "mon": sub, "moi": is_new, "chuong": num, "title": title,
-                   "so_cau": len(good), "bo": bad, "cap_nhat": updated, "ocr": str(f) in OCR_USED})
-        f.unlink()
+                   "so_cau": len(good), "bo": bad, "cap_nhat": updated, "ocr": any(str(x) in OCR_USED for x in paths)})
+        for x in paths:
+            x.unlink()
 
     append_subjects(new_subs)
     for rel, _ in fail:
-        try:
-            (ROOT / rel).unlink()
-        except OSError:
-            pass
+        for x in files_of.get(rel, [ROOT / rel]):
+            try:
+                x.unlink()
+            except OSError:
+                pass
     for d in sorted(NHAP.glob("*/"), reverse=True) if NHAP.exists() else []:
         try:
             d.rmdir()  # xóa thư mục môn đã trống

@@ -1,6 +1,6 @@
 # Thả đề vào đây → web tự cập nhật
 
-Tải file đề (**PDF, Word .docx, hoặc .txt**) vào thư mục này. Khoảng 1–2 phút sau web tự có chương mới.
+Tải file đề (**PDF, Word .docx, .txt, hoặc ảnh chụp .png/.jpg**) vào thư mục này. Khoảng 1–2 phút sau web tự có chương mới.
 Kết quả mỗi lần (thêm được bao nhiêu câu, câu nào bị bỏ, vì sao) nằm ở file **`KET_QUA.md`** ngay trong thư mục này.
 
 ## Đặt file thế nào
@@ -21,6 +21,7 @@ nhap/
 Kinh tế vi mô - Chương 3 - Độ co giãn.pdf
 ```
 
+- Nhiều ảnh chụp của **cùng 1 chương**: đặt tên `Chương 3 - Tên [1].png`, `Chương 3 - Tên [2].png`… → được ghép theo thứ tự thành 1 chương (trang ➕ Thêm đề tự làm việc này).
 - **Tên môn** trùng môn đã có (ví dụ `Pháp luật đại cương` hoặc `pldc`) → thêm chương vào môn đó. Tên mới → tự tạo môn mới.
 - Muốn chọn biểu tượng cho môn mới: thêm emoji cuối tên thư mục, ví dụ `Kinh tế vi mô 📈`.
 - **Số chương** lấy từ tên file (`Chương 2`, `chuong2`, `C2`, `2 - …`). Không có số → lấy số trống tiếp theo.
@@ -47,6 +48,7 @@ Giải thích: (không bắt buộc) hiện ra sau khi trả lời
 | Dấu * | `*B. …` hoặc `B. … (*)` |
 | Định dạng (Word) | đáp án đúng **in đậm**, gạch chân, tô màu chữ hoặc tô nền |
 | Định dạng (PDF) | đáp án đúng **in đậm** hoặc tô màu chữ |
+| Ảnh chụp / PDF scan | đáp án đúng **tô nền màu** hoặc **chữ màu** (kể cả màu nhạt kiểu web thi), các đáp án khác không màu |
 
 Cũng đọc được: `Câu 1.` / `1.` / `Question 1`, đáp án `A.` / `A)` / `(A)`, cả 4 đáp án viết chung 1 dòng, từ 2 đến 8 đáp án.
 

@@ -10,7 +10,9 @@ const REPO = location.hostname.endsWith(".github.io") ? (location.pathname.split
 const BRANCH = "main";
 const TOKEN_KEY = "ontap.ghtoken";
 const BUST_KEY = "ontap.bust";
-const EXTS = [".pdf", ".docx", ".txt"];
+const IMG_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".bmp"];
+const EXTS = [".pdf", ".docx", ".txt", ...IMG_EXTS];
+const extOf = name => (name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
 const EMOJIS = ["📘", "📐", "🧮", "💻", "🗄️", "🌐", "🔐", "📈", "⚖️", "📜", "🧪", "🧬", "🇬🇧", "🎵", "⭐", "🚩"];
 
 const $app = document.getElementById("app");
@@ -95,7 +97,9 @@ async function loadSubjects() {
 }
 
 /* ---------- Trạng thái form ---------- */
-const form = { subject: null, isNew: false, newName: "", newIcon: "📘", files: [] }; // files: [{file, num, title}]
+const form = { subject: null, isNew: false, newName: "", newIcon: "📘", files: [], merge: true }; // files: [{file, num, title}]
+// Nhiều ảnh chụp → gộp thành 1 chương (ảnh đọc nối tiếp theo thứ tự)
+const isMerged = () => form.merge && form.files.length >= 2 && form.files.every(f => IMG_EXTS.includes(extOf(f.file.name)));
 
 function guessChapter(filename) {
   const stem = filename.replace(/\.[^.]+$/, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
@@ -124,7 +128,7 @@ function addFiles(list) {
     form.files.push({ file, num: g.num || nextFree(taken), title: g.title, guessed: !g.num });
   }
   render();
-  if (bad.length) showMsg(`Bỏ qua: ${bad.join(", ")}. Chỉ nhận PDF, Word .docx, .txt (file .doc cũ: mở bằng Word rồi Lưu thành .docx).`);
+  if (bad.length) showMsg(`Bỏ qua: ${bad.join(", ")}. Chỉ nhận PDF, Word .docx, .txt, ảnh (.png, .jpg) — file .doc cũ: mở bằng Word rồi Lưu thành .docx.`);
 }
 // Khi đổi môn: chương đoán ra từ tên file giữ nguyên, chương tự đánh số thì tính lại
 function renumber() {
@@ -193,9 +197,12 @@ function renderConnect(err) {
 function render() {
   const sel = form.subject;
   const taken = usedNums();
-  const dupes = new Set(form.files.map(f => f.num).filter((n, i, a) => a.indexOf(n) !== i));
+  const merged = isMerged();
+  const dupes = merged ? new Set() : new Set(form.files.map(f => f.num).filter((n, i, a) => a.indexOf(n) !== i));
   const canGo = (form.isNew ? form.newName.trim() : sel) && form.files.length &&
     form.files.every(f => f.num >= 1 && f.num <= 40) && !dupes.size;
+  const allImgs = form.files.length >= 2 && form.files.every(f => IMG_EXTS.includes(extOf(f.file.name)));
+  const f0 = form.files[0];
 
   $app.innerHTML = `
     <h2 style="margin-top:0">1. Chọn môn</h2>
@@ -233,12 +240,25 @@ function render() {
 
     <h2>2. Chọn tài liệu</h2>
     <label class="drop" id="drop">
-      <input id="pick" type="file" multiple accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+      <input id="pick" type="file" multiple accept=".pdf,.docx,.txt,image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
       <div style="font-size:1.8rem">📄</div>
       <div><b>Bấm để chọn file</b> hoặc kéo thả vào đây</div>
-      <div class="hint" style="margin-top:4px">PDF, Word (.docx), .txt — chọn được nhiều file, mỗi file là 1 chương</div>
+      <div class="hint" style="margin-top:4px">PDF, Word (.docx), .txt, ảnh chụp (.png, .jpg) — chọn được nhiều file, mỗi file là 1 chương</div>
     </label>
-    ${form.files.length ? `<div class="files" style="margin-top:12px">
+    ${allImgs ? `<label class="merge"><input type="checkbox" id="merge" ${form.merge ? "checked" : ""}>
+      <span>Gộp ${form.files.length} ảnh thành <b>1 chương</b> <span class="muted">(đọc theo thứ tự bên dưới)</span></span></label>` : ""}
+    ${merged ? `<div class="files" style="margin-top:12px">
+        <div class="file">
+          <span class="fname">🖼 ${form.files.length} ảnh → 1 chương</span>
+          <input class="input num" type="number" min="1" max="40" value="${f0.num}" data-num="0" title="Số chương" aria-label="Số chương">
+          <input class="input" value="${esc(f0.title)}" data-title="0" placeholder="Tên chương (không bắt buộc)" aria-label="Tên chương">
+          <span></span>
+          ${taken.has(f0.num) ? `<span class="warn">Chương ${f0.num} đã có — sẽ được thay bằng các ảnh này</span>` : ""}
+        </div>
+        ${form.files.map((f, i) => `<div class="chrow"><span>${i + 1}. ${esc(f.file.name)}</span>
+          <button class="x" type="button" data-rm="${i}" title="Bỏ ảnh này">✕</button></div>`).join("")}
+      </div>` :
+    form.files.length ? `<div class="files" style="margin-top:12px">
       ${form.files.map((f, i) => `
         <div class="file">
           <span class="fname">📎 ${esc(f.file.name)}</span>
@@ -267,6 +287,8 @@ function render() {
   if (nn) nn.oninput = () => { form.newName = nn.value; document.getElementById("go").disabled = !(nn.value.trim() && form.files.length); };
   $app.querySelectorAll("[data-emo]").forEach(b => b.onclick = () => { form.newIcon = b.dataset.emo; render(); });
   document.getElementById("pick").onchange = e => { addFiles([...e.target.files]); };
+  const mg = document.getElementById("merge");
+  if (mg) mg.onchange = () => { form.merge = mg.checked; render(); };
   const drop = document.getElementById("drop");
   drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
   drop.ondragleave = () => drop.classList.remove("over");
@@ -422,7 +444,8 @@ function renderSteps(icon, title, sub, steps, state, extra = "") {
 }
 function renderProgress(state, extra = "") {
   renderSteps(form.isNew ? form.newIcon : form.subject.icon, form.isNew ? form.newName.trim() : form.subject.name,
-    `${form.files.length} file · chương ${form.files.map(f => f.num).sort((a, b) => a - b).join(", ")}`, STEPS, state, extra);
+    isMerged() ? `${form.files.length} ảnh · chương ${form.files[0].num}` :
+      `${form.files.length} file · chương ${form.files.map(f => f.num).sort((a, b) => a - b).join(", ")}`, STEPS, state, extra);
 }
 
 function cleanName(s) { return s.replace(/[\\/:*?"<>|#%]/g, " ").replace(/\s+/g, " ").trim(); }
@@ -434,16 +457,18 @@ async function upload() {
   renderProgress(st);
   let commitSha;
   try {
-    const entries = await Promise.all(form.files.map(async f => {
-      const ext = (f.file.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
-      const title = cleanName(f.title || "");
-      const name = `Chương ${f.num}${title ? ` - ${title}` : ""}${ext}`;
+    const merged = isMerged();
+    const entries = await Promise.all(form.files.map(async (f, i) => {
+      const ext = extOf(f.file.name);
+      const head = merged ? form.files[0] : f;
+      const title = cleanName(head.title || "");
+      const name = `Chương ${head.num}${title ? ` - ${title}` : ""}${merged ? ` [${i + 1}]` : ""}${ext}`;
       const blob = await gh(repoPath("/git/blobs"), {
         method: "POST", body: JSON.stringify({ content: await fileToB64(f.file), encoding: "base64" }),
       });
       return { path: `nhap/${cleanName(folder)}/${name}`, sha: blob.sha };
     }));
-    commitSha = await commitTree(entries, `Thêm đề: ${subjName} – chương ${form.files.map(f => f.num).join(", ")}`);
+    commitSha = await commitTree(entries, `Thêm đề: ${subjName} – chương ${merged ? form.files[0].num : form.files.map(f => f.num).join(", ")}`);
   } catch (e) {
     st[0] = "fail";
     if (e.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch { } }
