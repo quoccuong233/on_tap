@@ -249,17 +249,34 @@ def _pdf_char_marked(ch) -> bool:
 OCR_USED = set()  # file nào phải đọc chữ từ ảnh
 
 
+TESSDATA = Path(os.environ.get("OCR_TESSDATA", Path.home() / ".cache" / "ontap-tessdata"))
+VIE_URL = "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.traineddata"
+
+
 def ensure_tesseract():
-    """Trên GitHub Actions: cài Tesseract + gói tiếng Việt khi lần đầu cần OCR."""
+    """Cần Tesseract + dữ liệu tiếng Việt (bản 'fast': nhanh, đủ chính xác cho đề in).
+    Trên GitHub Actions tự cài khi lần đầu cần OCR."""
     import shutil
     import subprocess
-    if shutil.which("tesseract"):
-        return True
-    if os.environ.get("GITHUB_ACTIONS") == "true":
+    import urllib.request
+    if not shutil.which("tesseract") and os.environ.get("GITHUB_ACTIONS") == "true":
         print("Cài Tesseract OCR…", flush=True)
-        subprocess.run("sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-vie",
-                       shell=True, check=False, stdout=subprocess.DEVNULL)
-    return bool(shutil.which("tesseract"))
+        subprocess.run("sudo rm -f /var/lib/man-db/auto-update; sudo apt-get update -qq && "
+                       "sudo apt-get install -y -qq --no-install-recommends tesseract-ocr",
+                       shell=True, check=False, stdout=subprocess.DEVNULL, timeout=600)
+    if not shutil.which("tesseract"):
+        return False
+    vie = TESSDATA / "vie.traineddata"
+    if not vie.exists():
+        TESSDATA.mkdir(parents=True, exist_ok=True)
+        try:
+            print("Tải dữ liệu chữ tiếng Việt cho OCR…", flush=True)
+            urllib.request.urlretrieve(VIE_URL, vie)
+            if vie.stat().st_size < 100_000:
+                vie.unlink()
+        except Exception as e:
+            print("Không tải được dữ liệu tiếng Việt:", e, flush=True)
+    return vie.exists()
 
 
 def ocr_pages(path: Path, page_numbers):
@@ -279,11 +296,17 @@ def ocr_pages(path: Path, page_numbers):
         imgs[i] = f
     doc.close()
 
-    def one(i):
-        r = subprocess.run(["tesseract", str(imgs[i]), "-", "-l", "vie", "--psm", "4"],
-                           capture_output=True, text=True)
-        return i, r.stdout.splitlines()
+    env = {**os.environ, "OMP_THREAD_LIMIT": "1"}  # mỗi tiến trình 1 luồng, chạy song song theo trang
 
+    def one(i):
+        try:
+            r = subprocess.run(["tesseract", str(imgs[i]), "-", "--tessdata-dir", str(TESSDATA), "-l", "vie", "--psm", "4"],
+                               capture_output=True, text=True, env=env, timeout=180)
+            return i, r.stdout.splitlines()
+        except subprocess.TimeoutExpired:
+            return i, []
+
+    print(f"Đọc chữ từ ảnh {len(page_numbers)} trang của {path.name}…", flush=True)
     with ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
         return dict(ex.map(one, page_numbers))
 

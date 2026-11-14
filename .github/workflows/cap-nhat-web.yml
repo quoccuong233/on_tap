@@ -50,6 +50,7 @@ jobs:
       - name: Chuyển đề thành câu hỏi
         id: convert
         if: steps.check.outputs.co == '1'
+        timeout-minutes: 15
         run: python .github/scripts/chuyen_doi.py
 
       - name: Lưu kết quả vào repo
