@@ -1,0 +1,87 @@
+# Mỗi lần có thay đổi trên nhánh main:
+#   1. Nếu có file đề mới trong nhap/ → tự chuyển thành data/<môn>/chuongN.js, thêm môn mới vào data/mon.js
+#   2. Lưu kết quả vào repo (file gốc trong nhap/ được xóa, kết quả ghi ở nhap/KET_QUA.md)
+#   3. Đưa web lên GitHub Pages
+# Cần bật 1 lần: Settings → Pages → Source: "GitHub Actions"
+
+name: Cập nhật web ôn tập
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: cap-nhat-web
+  cancel-in-progress: false
+
+jobs:
+  cap-nhat:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main # lấy bản mới nhất, kể cả commit tự động của lần chạy trước
+
+      - name: Kiểm tra có đề mới trong nhap/ không
+        id: check
+        run: |
+          if [ -d nhap ] && find nhap -type f ! -name 'HUONG_DAN.md' ! -name 'KET_QUA.md' ! -name '.*' | grep -q .; then
+            echo "co=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.co == '1'
+        with:
+          python-version: "3.12"
+
+      - name: Cài thư viện đọc PDF / Word
+        if: steps.check.outputs.co == '1'
+        run: pip install --quiet python-docx pdfplumber
+
+      - name: Chuyển đề thành câu hỏi
+        id: convert
+        if: steps.check.outputs.co == '1'
+        run: python .github/scripts/chuyen_doi.py
+
+      - name: Lưu kết quả vào repo
+        if: steps.check.outputs.co == '1'
+        env:
+          MO_TA: ${{ steps.convert.outputs.mo_ta }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data nhap
+          if ! git diff --cached --quiet; then
+            git commit -m "Tự động thêm đề: ${MO_TA:-xem nhap/KET_QUA.md}"
+            git pull --rebase --quiet origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Gom file web
+        run: |
+          mkdir _site
+          cp index.html app.js style.css _site/
+          cp -r data _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Báo lỗi nếu có file không đọc được
+        if: steps.convert.outputs.loi == '1'
+        run: |
+          echo "::error::Có file đề không chuyển được — mở nhap/KET_QUA.md trong repo để xem lý do"
+          exit 1

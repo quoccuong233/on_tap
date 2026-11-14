@@ -21,7 +21,7 @@ npx serve .
 ## Đưa lên GitHub Pages
 1. Tạo repo mới trên GitHub ở chế độ **Public**
 2. Bấm **Add file → Upload files**, kéo **toàn bộ** file và thư mục `data/` vào, rồi bấm **Commit**
-3. Vào **Settings → Pages**, ở mục Source chọn **Deploy from a branch**, branch `main`, thư mục `/ (root)`, rồi bấm **Save**
+3. Vào **Settings → Pages**, ở mục Source chọn **GitHub Actions** (workflow `cap-nhat-web.yml` sẽ tự đưa web lên mỗi lần có thay đổi)
 4. Đợi 1–2 phút, web sẽ có ở `https://<tên-bạn>.github.io/<tên-repo>/`
 
 ## Cấu trúc
@@ -47,10 +47,19 @@ data/
     └── chuong1.js … chuong7.js   ← 7 chương (203 câu)
 ```
 
-## Thêm chương mới
+## Thêm đề tự động (khuyên dùng)
+Tải file đề **PDF / Word .docx / .txt** vào thư mục [`nhap/`](nhap/HUONG_DAN.md), đặt trong thư mục mang tên môn
+(ví dụ `nhap/Kinh tế vi mô/Chương 2 - Cung cầu.pdf`). GitHub Actions sẽ tự chuyển đề thành `data/<môn>/chuongN.js`,
+tự thêm môn mới vào `data/mon.js` rồi đưa web lên lại. Cách viết đề và cách đánh dấu đáp án: xem [`nhap/HUONG_DAN.md`](nhap/HUONG_DAN.md).
+
+Cần bật 1 lần: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+Phần chuyển đề nằm ở `.github/scripts/chuyen_doi.py`, quy trình ở `.github/workflows/cap-nhat-web.yml`.
+
+## Thêm chương mới (thủ công)
 Đặt file `chuongN.js` (N từ 1 đến 40) vào thư mục của môn, ví dụ `data/pldc/chuong4.js`. Web tự nhận ra, **không cần sửa code**.
 
-## Thêm môn mới
+## Thêm môn mới (thủ công)
 1. Mở `data/mon.js` và thêm 1 dòng: `addSubject({ id: "kinh-te", name: "Kinh tế vi mô", icon: "📈" });`
 2. Tạo thư mục `data/kinh-te/` rồi đặt các file `chuong1.js`, `chuong2.js`… vào đó.
 
