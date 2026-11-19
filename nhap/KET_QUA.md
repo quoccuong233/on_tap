@@ -1,4 +1,4 @@
-# Kết quả thêm đề — 22:40 19/11/2026
+# Kết quả thêm đề — 22:41 19/11/2026
 ## ❌ nhap/Ứng dụng phân tán/Chương 2 - UDPT De so 3.pdf
 - không lấy được câu nào — chỉ đọc được 0 đáp án
 - File đã được gỡ khỏi `nhap/`. Sửa rồi tải lại là được.
