@@ -417,9 +417,94 @@ def ocr_fix(t: str) -> str:
     return t
 
 
+def _pdf_text_lines(page):
+    """Các dòng chữ của 1 trang. Có PDF (WPS, Google Docs…) không lưu dấu cách mà chỉ để khoảng trống
+    giữa các chữ → đọc mặc định bị dính chữ ("Hệthốngphântán"); khi đó đọc lại với ngưỡng khoảng cách nhỏ hơn."""
+    tls = page.extract_text_lines(return_chars=True, strip=True)
+    text = "".join(tl["text"] for tl in tls)
+    if len(text) > 200 and text.count(" ") < len(text) * 0.04:
+        tls2 = page.extract_text_lines(return_chars=True, strip=True, x_tolerance=1.5)
+        if "".join(tl["text"] for tl in tls2).count(" ") > text.count(" "):
+            return tls2
+    return tls
+
+
+def _label_bare_options(rows):
+    """Đề kiểu ACourse: 'Câu 1' rồi đề bài, các đáp án là các đoạn KHÔNG có chữ A. B. C. D. đứng trước
+    (đáp án đúng tô màu). Gộp dòng bị xuống dòng thành đoạn, rồi gắn 'A. ', 'B. '…
+    rows = [(Line, trang, top, cỡ chữ, mép phải, độ rộng chữ đầu dòng)]. Trả về danh sách Line."""
+    lines = [r[0] for r in rows]
+    texts = [l.text.strip() for l in lines]
+    n_q = sum(1 for t in texts if Q_RE.match(t))
+    n_opt = sum(1 for t in texts if re.match(r"^\(?[A-Ha-h]\s*[.)]", t))
+    if n_q < 3 or n_opt >= n_q:
+        return lines  # đề bình thường có A. B. C. D.
+
+    # gộp dòng thành đoạn. Dòng sau là phần tiếp của dòng trước khi:
+    #  - hai dòng sát nhau (cách < ~1.45 cỡ chữ; đề có giãn cách giữa các đáp án sẽ tách ở đây), và
+    #  - dòng trước chạy gần tới lề phải: chữ đầu của dòng sau KHÔNG vừa chỗ trống còn lại
+    #    (nếu vừa thì Word đã để nó ở dòng trước → dòng trước kết thúc đoạn, dòng sau là đáp án mới)
+    right = max((r[4] for r in rows), default=0)
+    paras = []  # [Line, là_dòng_Câu]
+    prev = None
+    for (l, pg, top, size, x1, w0) in rows:
+        isq = bool(Q_RE.match(l.text.strip()))
+        cont = (prev is not None and not isq and not prev[4] and pg == prev[1]
+                and 0 < top - prev[2] < 1.45 * max(size, prev[3])
+                and prev[5] + 0.25 * size + w0 > right - 1.5
+                # dòng in đậm/tô màu rồi tới dòng thường (hoặc ngược lại) → 2 đáp án khác nhau
+                and abs(paras[-1][0].frac_marked() - l.frac_marked()) < 0.5
+                # dòng trước hết câu, dòng sau viết hoa → thường là đáp án mới
+                and not (re.search(r"[.;!]\s*$", prev[0].text) and l.text.strip()[:1].isupper())
+                # dòng trước kết thúc bằng '?' / ':' → hết đề bài
+                and not re.search(r"[?:：]\s*$", prev[0].text))
+        if cont:
+            p = paras[-1][0]
+            paras[-1][0] = Line(p.text + " " + l.text, p.marks + [False] + l.marks)
+        else:
+            paras.append([l, isq])
+        prev = (l, pg, top, size, isq, x1)
+
+    # chia theo câu
+    blocks, out = [], []
+    for p, isq in paras:
+        if isq:
+            blocks.append([p, []])
+        elif blocks:
+            blocks[-1][1].append(p)
+        else:
+            out.append(p)  # tiêu đề đầu file
+    from collections import Counter
+    usual = Counter(len(b) - 1 for _, b in blocks if len(b) >= 3).most_common(1)
+    usual = usual[0][0] if usual else 4
+    for head, body in blocks:
+        # câu có chữ ngay sau "Câu 1:" → đó là đề bài, mọi đoạn sau là đáp án
+        rest = head.text.strip()[Q_RE.match(head.text.strip()).end():].strip()
+        if rest:
+            n_stem = 0
+        else:
+            # đề bài thường kết thúc bằng '?' hoặc ':' → các đoạn sau đó là đáp án
+            ends = [i for i, p in enumerate(body) if re.search(r"[?:：]\s*$", p.text)]
+            ends = [i for i in ends if len(body) - i - 1 >= 2]
+            if ends:
+                n_stem = ends[-1] + 1
+            else:
+                n_stem = max(1, len(body) - usual)
+        out.append(head)
+        out += body[:n_stem]
+        for k, p in enumerate(body[n_stem:]):
+            if k >= len(LETTERS):
+                out.append(p)
+                continue
+            pre = f"{LETTERS[k]}. "
+            out.append(Line(pre + p.text, [False] * len(pre) + p.marks))
+    return out
+
+
 def read_pdf(path: Path):
     import pdfplumber
     lines = []
+    rows = []  # (Line, trang, top, cỡ chữ) — dùng cho đề không có chữ A. B. C. D.
     with pdfplumber.open(str(path)) as pdf:
         empty = [i for i, pg in enumerate(pdf.pages) if not any(c["text"].strip() for c in pg.chars)]
         ocr = ocr_pages(path, empty) if empty else {}
@@ -429,7 +514,7 @@ def read_pdf(path: Path):
             if pi in ocr:
                 lines += ocr[pi]
                 continue
-            for tl in page.extract_text_lines(return_chars=True, strip=True):
+            for tl in _pdf_text_lines(page):
                 chars = [c for c in tl["chars"] if c["text"].strip()]
                 runs, ci = [], 0
                 for c in tl["text"]:
@@ -449,6 +534,12 @@ def read_pdf(path: Path):
                     if re.fullmatch(r"(?:trang\s*)?\d{1,3}(?:\s*/\s*\d{1,3})?", l.text.strip(), re.I):
                         continue
                     lines.append(l)
+                    size = max((c.get("size") or 0 for c in chars), default=0) or (tl["bottom"] - tl["top"])
+                    w = len(tl["text"].split()[0]) if tl["text"].split() else 0
+                    w0 = chars[min(w, len(chars)) - 1]["x1"] - chars[0]["x0"] if chars and w else 0
+                    rows.append((l, pi, tl["top"], size, tl["x1"], w0))
+    if not ocr and len(rows) == len(lines):
+        lines = _label_bare_options(rows)
     return lines, {}
 
 
@@ -851,7 +942,10 @@ def resolve(qs, key):
                     if len(q.opts) >= usual and cs[0][0] >= 6 and cs[0][0] >= 2.5 * cs[1][0] + 2:
                         ans = cs[0][1]
         if ans is None:
-            bad.append((label, "không tìm thấy đáp án đúng", preview))
+            nm = sum(1 for o in q.opts if o.line.frac_marked() >= 0.5)
+            why = (f"có {nm} đáp án được tô (câu nhiều đáp án đúng — web chỉ hỗ trợ 1 đáp án)"
+                   if nm > 1 else "không tìm thấy đáp án đúng")
+            bad.append((label, why, preview))
             continue
         if ans >= len(opts):
             bad.append((label, f"đáp án {LETTERS[ans]} nhưng câu chỉ có {len(opts)} lựa chọn", preview))
